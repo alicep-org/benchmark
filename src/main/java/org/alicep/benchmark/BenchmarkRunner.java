@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.junit.AssumptionViolatedException;
 import org.junit.runner.Description;
 import org.junit.runner.Runner;
 import org.junit.runner.notification.Failure;
@@ -241,6 +242,9 @@ public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.SingleBenchmar
       notifier.fireTestStarted(description);
 
       try {
+        // The hot loop we are timing
+        LongUnaryOperator hotLoop = hotLoopFactory.get();
+
         System.out.print(config() + ": ");
         if (System.getenv("CI") == null) {
           System.out.flush();
@@ -265,9 +269,6 @@ public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.SingleBenchmar
 
         // Monitor the JVM for suspicious activity
         ManagementMonitor monitor = new ManagementMonitor();
-
-        // The hot loop we are timing
-        LongUnaryOperator hotLoop = hotLoopFactory.get();
 
         // How many timing samples we've taken
         int timingSamples = 0;
@@ -355,13 +356,18 @@ public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.SingleBenchmar
         summarize(tS, tSS, timingSamples, memoryUsage, memorySamples, monitor);
         notifier.fireTestFinished(description);
       } catch (Throwable t) {
-        System.out.print(t.getClass().getSimpleName());
-        if (t.getMessage() != null) {
-          System.out.print(": ");
-          System.out.print(t.getMessage());
+        if (t.getClass().getName().equals(AssumptionViolatedException.class.getName())) {
+          // Janky class name check because this might be thrown from a forked ClassLoader
+          notifier.fireTestAssumptionFailed(new Failure(description, t));
+        } else {
+          System.out.print(t.getClass().getSimpleName());
+          if (t.getMessage() != null) {
+            System.out.print(": ");
+            System.out.print(t.getMessage());
+          }
+          System.out.println();
+          notifier.fireTestFailure(new Failure(description, t));
         }
-        System.out.println();
-        notifier.fireTestFailure(new Failure(description, t));
       }
     }
 
