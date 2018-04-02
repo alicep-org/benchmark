@@ -50,6 +50,14 @@ public class MemGauge {
       if (q1Without == medianWithout && q1With == medianWith) {
         break;
       }
+      if (tail % 1000 == 0) {
+          System.out.println("Number without after " + tail + " iterations:");
+          System.out.println(Arrays.toString(without));
+          System.out.println();
+          System.out.println("Number with after " + tail + " iterations:");
+          System.out.println(Arrays.toString(with));
+          System.out.println();
+      }
       head = tail;
       tail = tail + 4;
       without = Arrays.copyOf(without, tail);
