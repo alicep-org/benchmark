@@ -2,6 +2,7 @@ package org.alicep.benchmark;
 
 import static java.util.Arrays.setAll;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +21,7 @@ public class DummyBenchmark {
     private final String[] items;
 
     public DummyBenchmark(int size) {
+        assumeTrue("Don't run on CI", System.getenv("CI") == null);
         // Create the list of items in the constructor as we're interested in benchmarking
         // list creation, not Integer.toString.
         items = new String[size];
