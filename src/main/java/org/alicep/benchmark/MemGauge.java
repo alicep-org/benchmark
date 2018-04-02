@@ -50,7 +50,7 @@ public class MemGauge {
       if (q1Without == medianWithout && q1With == medianWith) {
         break;
       }
-      if (tail % 1000 == 0) {
+      if (tail % 100 == 0) {
           System.out.println("Number without after " + tail + " iterations:");
           System.out.println(Arrays.toString(without));
           System.out.println();
@@ -58,7 +58,7 @@ public class MemGauge {
           System.out.println(Arrays.toString(with));
           System.out.println();
       }
-      if (tail >= 10000) {
+      if (tail >= 1000) {
           throw new AssertionError("Did not stabilize after 10k iterations");
       }
       head = tail;
