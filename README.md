@@ -2,6 +2,8 @@
 
 Benchmark your code to nanosecond and byte precision with ease.
 
+[![Build Status](https://travis-ci.org/alicep-org/benchmark.svg?branch=master)](https://travis-ci.org/alicep-org/benchmark)
+
 ## Resident memory usage
 
 `MemGauge.measureMemoryUsage` lets you determine the memory consumed by an object or collection of objects to byte precision in a fraction of a second. By triggering repeated GC cycles and watching the notifications, with a few tricks to overcome the JVM's intransigence, you can not only discover but unit test your memory usage.
