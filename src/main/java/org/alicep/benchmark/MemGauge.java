@@ -58,6 +58,9 @@ public class MemGauge {
           System.out.println(Arrays.toString(with));
           System.out.println();
       }
+      if (tail >= 10000) {
+          throw new AssertionError("Did not stabilize after 10k iterations");
+      }
       head = tail;
       tail = tail + 4;
       without = Arrays.copyOf(without, tail);
