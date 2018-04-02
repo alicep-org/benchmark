@@ -3,6 +3,7 @@ if (System.env.CI == 'true') {
     testLogging {
       events "passed", "skipped", "failed"
       showStandardStreams = true
+      exceptionFormat = 'full'
     }
   }
 }
