@@ -59,7 +59,8 @@ public class MemGauge {
           System.out.println();
       }
       if (tail >= 1000) {
-          throw new AssertionError("Did not stabilize after 10k iterations");
+          throw new AssertionError("Did not stabilize after 1k iterations:\n"
+                  + Arrays.toString(with) + "\n" + Arrays.toString(without));
       }
       head = tail;
       tail = tail + 4;
