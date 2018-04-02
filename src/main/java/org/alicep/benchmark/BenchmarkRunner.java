@@ -242,7 +242,9 @@ public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.SingleBenchmar
 
       try {
         System.out.print(config() + ": ");
-        System.out.flush();
+        if (System.getenv("CI") == null) {
+          System.out.flush();
+        }
 
         // Number of times to run the hot loop for
         long hotLoopIterations = 1;
