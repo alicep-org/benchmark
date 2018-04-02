@@ -1,0 +1,25 @@
+# Java class files
+*.class
+
+# generated files
+bin/
+gen/
+
+# Eclipse project files
+.classpath
+.project
+.test
+.settings
+
+# Intellij project files
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Gradle
+.gradletasknamecache
+.gradle/
+build/
+bin/
+
