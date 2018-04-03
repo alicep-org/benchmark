@@ -1,5 +1,6 @@
 package org.alicep.benchmark;
 
+import static java.util.Arrays.sort;
 import static org.alicep.benchmark.Bytes.bytes;
 
 import java.util.Arrays;
@@ -28,8 +29,7 @@ public class MemGauge {
     int tail = 7;
     long[] without = new long[tail];
     long[] with = new long[tail];
-    long medianWith;
-    long medianWithout;
+    long[] differences = new long[tail];
     do {
       for (int i = head; i < tail; ++i) {
         @SuppressWarnings("unused")
@@ -41,16 +41,37 @@ public class MemGauge {
         without[i] = memory2 - memory1;
         with[i] = memory3 - memory2;
       }
-      Arrays.sort(without);
-      Arrays.sort(with);
+      sort(without);
+      sort(with);
+
+      // If the second quartiles are constant, take the difference between the medians
       long q1Without = without[tail / 4];
-      medianWithout = without[tail / 2];
+      long medianWithout = without[tail / 2];
       long q1With = with[tail / 4];
-      medianWith = with[tail / 2];
+      long medianWith = with[tail / 2];
       if (q1Without == medianWithout && q1With == medianWith) {
-        break;
+        return bytes(medianWith - medianWithout);
       }
-      if (tail % 100 == 0) {
+
+      // If the majority of differences are the same, return that
+      for (int i = 0; i < differences.length; ++i) {
+          differences[i] = with[i] - without[i];
+      }
+      sort(differences);
+      for (long i = 0, last = 0, count = 0; i < differences.length; ++i) {
+          if (differences[(int) i] == last) {
+              count++;
+              if (count >= differences.length / 2) {
+                  return bytes(last);
+              }
+          } else {
+              last = differences[(int) i];
+              count = 1;
+          }
+      }
+
+
+      if (tail % 100 == 3) {
           System.out.println("Number without after " + tail + " iterations:");
           System.out.println(Arrays.toString(without));
           System.out.println();
@@ -66,9 +87,7 @@ public class MemGauge {
       tail = tail + 4;
       without = Arrays.copyOf(without, tail);
       with = Arrays.copyOf(with, tail);
+      differences = Arrays.copyOf(differences, tail);
     } while (true);
-
-    // Take the difference between the medians
-    return bytes(medianWith - medianWithout);
   }
 }
