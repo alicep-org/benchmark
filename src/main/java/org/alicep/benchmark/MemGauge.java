@@ -54,22 +54,23 @@ public class MemGauge {
       }
 
       // If the majority of differences are the same, return that
-      for (int i = 0; i < differences.length; ++i) {
-          differences[i] = with[i] - without[i];
-      }
-      sort(differences);
-      for (long i = 0, last = 0, count = 0; i < differences.length; ++i) {
-          if (differences[(int) i] == last) {
-              count++;
-              if (count >= differences.length / 2) {
-                  return bytes(last);
+      if (differences.length > 30) {
+          for (int i = 0; i < differences.length; ++i) {
+              differences[i] = with[i] - without[i];
+          }
+          sort(differences);
+          for (long i = 0, last = 0, count = 0; i < differences.length; ++i) {
+              if (differences[(int) i] == last) {
+                  count++;
+                  if (count >= differences.length / 2) {
+                      return bytes(last);
+                  }
+              } else {
+                  last = differences[(int) i];
+                  count = 1;
               }
-          } else {
-              last = differences[(int) i];
-              count = 1;
           }
       }
-
 
       if (tail % 100 == 3) {
           System.out.println("Number without after " + tail + " iterations:");
