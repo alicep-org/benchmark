@@ -16,7 +16,7 @@ env:
     - secure: "SRx6S+8XM1P3/Or0FiPPa27qnDXdEc1N1EG8HjJFP+GnyRMtJgfB3kDcdyJoci1gGvR8TV8AbOCC9FQ4ERE6d9j7kgBSIcFIvUmDPaEz1fV7oMUt1yuNxH8xRqx6q03VyHqcwnfK0kZWe3UcwZXMSrPbO4optp8eOiifQMS704qKA9ExVTNpGLwJLv0yDb7EnthI1w+0km6lj2VQ/0IZUXf8z006p/srx5b7dblNZa47p/pqTXu/2C7EigvkYoS07vDNszf6LO7X/K5pv4GDwFW2ZPm9q7ENtJViTVDluNRMH+pzMhgtFNU/dkDXAEW4V3A2b62hMa3BVxWE/GnaxiSjpzEhsDbkmc5EOXVshbUe/PS1WSeYFq0jz25RVy91aDJQgAf27BeHSziNfCgPZs9nMupBwMjz5AZOhTh5mGX+1JfLsDLex2QMwpUHYlTrAj56rMund1jsZnYkvSKQDSI8f1pIs7UuhW8+NtwxzDjdSbz2m+v+qUDgDgL8mraIZzERUzYQIH9c3Qssn3KCj14ieIwBfRy1zh+Ibn8rBTgnz6tyhdNDU8Yt1H/XWNEwXbYSEx+kW0WP4/4SHS0pbHB4hjBwWcwcMKyJyznnnz7jmyuX95aX9E8mQKNgweBtc+v1EMxmNa0sKLypEX9XjzFdgZluQ2l1zZ4iVvjKlhk="
 
 before_deploy:
-  - openssl aes-256-cbc -K ${encrypted_dc72d5bb1914_key:?not set} -iv ${encrypted_dc72d5bb1914_iv:?not set} -in gradle/codesigning.asc.enc -out codesigning.asc -d
+  - openssl aes-256-cbc -K $encrypted_8ca725689fbc_key -iv $encrypted_8ca725689fbc_iv -in gradle/codesigning.asc.enc -out codesigning.asc -d
   - gpg --fast-import -q codesigning.asc
 
 deploy:
