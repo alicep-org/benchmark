@@ -22,6 +22,6 @@ before_deploy:
 deploy:
   skip_cleanup: true
   provider: script
-  script: ./gradlew upload closeAndPromoteRepository --stacktrace --debug
+  script: ./gradlew upload closeAndPromoteRepository --stacktrace --info
   on:
     tags: true
