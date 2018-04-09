@@ -71,9 +71,12 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
   public void run(RunNotifier notifier) {
     notifier.fireTestStarted(description);
 
+    ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+
     try {
       // The hot loop we are timing
       LongUnaryOperator hotLoop = hotLoopFactory.get();
+      Thread.currentThread().setContextClassLoader(hotLoop.getClass().getClassLoader());
 
       if (config() == null) {
         System.out.print(description.getMethodName() + ": ");
@@ -204,6 +207,8 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
         System.out.println();
         notifier.fireTestFailure(new Failure(description, t));
       }
+    } finally {
+      Thread.currentThread().setContextClassLoader(originalClassLoader);
     }
   }
 

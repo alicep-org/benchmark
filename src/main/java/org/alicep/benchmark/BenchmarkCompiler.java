@@ -87,12 +87,16 @@ class BenchmarkCompiler {
         + "}\n";
     ForkingClassLoader generatedClasses = compile(classLoader, pkg, className, src);
     Arrays.asList(forkingCoreClassesMatching).forEach(generatedClasses::forkingCoreClassesMatching);
+    ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
     try {
+      Thread.currentThread().setContextClassLoader(forkingClassLoader);
       Class<?> generatedClass = generatedClasses.loadClass(pkg + "." + className);
       LongUnaryOperator benchmarkLoop = (LongUnaryOperator) generatedClass.newInstance();
       return jitObfuscate(benchmarkLoop);
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
+    } finally {
+      Thread.currentThread().setContextClassLoader(originalClassLoader);
     }
   }
 
