@@ -93,6 +93,19 @@ class InMemoryJavaFileManager implements JavaFileManager {
     return delegate.isSupportedOption(option);
   }
 
+  public ClassLoader getNonForkingClassLoader(ClassLoader parent) {
+    return new ClassLoader(parent) {
+      @Override
+      protected Class<?> findClass(String name) throws ClassNotFoundException {
+        InMemoryJavaFile classFile = javaFiles.get(FileKey.forClass(CLASS_OUTPUT, name, CLASS));
+        if (classFile != null) {
+          return super.defineClass(name, classFile.getBuffer(), null);
+        }
+        return super.findClass(name);
+      }
+    };
+  }
+
   public ForkingClassLoader getForkingClassLoader(ClassLoader parent) {
     return new ForkingClassLoader(parent) {
       @Override

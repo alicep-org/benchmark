@@ -1,6 +1,7 @@
 package org.alicep.benchmark;
 
 import java.io.IOException;
+import java.lang.reflect.MalformedParametersException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -65,14 +66,27 @@ class ForkingClassLoader extends ClassLoader {
   @Override
   protected Class<?> findClass(String name) throws ClassNotFoundException {
     String originalName = name.startsWith(FORK_PACKAGE) ? name.substring(FORK_PACKAGE.length()) : name;
-    byte[] bytes = new ByteBuddy()
-        .with(TypeValidation.DISABLED)
-        .redefine(original.loadClass(originalName))
-        .name(name)
-        .visit(new SubstituteClassReferences(this::rename))
-        .make()
-        .getBytes();
-    return super.defineClass(name, bytes, 0, bytes.length);
+    Class<?> originalClass = original.loadClass(originalName);
+    try {
+      byte[] bytes = new ByteBuddy()
+          .with(TypeValidation.DISABLED)
+          .redefine(originalClass)
+          .name(name)
+          .visit(new SubstituteClassReferences(this::rename))
+          .make()
+          .getBytes();
+      return super.defineClass(name, bytes, 0, bytes.length);
+    } catch (IllegalStateException e) {
+      if (e.getCause() instanceof MalformedParametersException) {
+        MalformedParametersException cause = (MalformedParametersException) e.getCause();
+        if (cause.getMessage().equals("Invalid parameter name \"\"")) {
+          throw new EclipseCompilerBug("Encountered ECJ bug: https://bugs.eclipse.org/bugs/show_bug.cgi?id=516833", e);
+        }
+      }
+      throw new AssertionError("Failed to fork " + originalName, e);
+    } catch (Error | RuntimeException e) {
+      throw new AssertionError("Failed to fork " + originalName, e);
+    }
   }
 
   @Override

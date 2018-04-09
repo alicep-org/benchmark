@@ -85,14 +85,24 @@ class BenchmarkCompiler {
         + "    return endTime - startTime;\n"
         + "  }\n"
         + "}\n";
-    ForkingClassLoader generatedClasses = compile(classLoader, pkg, className, src);
-    Arrays.asList(forkingCoreClassesMatching).forEach(generatedClasses::forkingCoreClassesMatching);
+    InMemoryJavaFileManager bytecodes = compile(pkg, className, src);
+    ForkingClassLoader forkingClassLoader = bytecodes.getForkingClassLoader(classLoader);
+    Arrays.asList(forkingCoreClassesMatching).forEach(forkingClassLoader::forkingCoreClassesMatching);
     ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
     try {
-      Thread.currentThread().setContextClassLoader(forkingClassLoader);
-      Class<?> generatedClass = generatedClasses.loadClass(pkg + "." + className);
-      LongUnaryOperator benchmarkLoop = (LongUnaryOperator) generatedClass.newInstance();
-      return jitObfuscate(benchmarkLoop);
+      try {
+        Thread.currentThread().setContextClassLoader(forkingClassLoader);
+        Class<?> generatedClass = forkingClassLoader.loadClass(pkg + "." + className);
+        LongUnaryOperator benchmarkLoop = (LongUnaryOperator) generatedClass.newInstance();
+        return jitObfuscate(benchmarkLoop);
+      } catch (EclipseCompilerBug e) {
+        System.out.println("[WARN] " + e.getMessage());
+        System.out.println("[WARN] Benchmarks may interfere");
+        ClassLoader nonForkingClassLoader = bytecodes.getNonForkingClassLoader(classLoader);
+        Thread.currentThread().setContextClassLoader(nonForkingClassLoader);
+        Class<?> generatedClass = nonForkingClassLoader.loadClass(pkg + "." + className);
+        return (LongUnaryOperator) generatedClass.newInstance();
+      }
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     } finally {
@@ -122,7 +132,7 @@ class BenchmarkCompiler {
     return construct.toString();
   }
 
-  private static ForkingClassLoader compile(ClassLoader origin, String pkg, String className, String src) {
+  private static InMemoryJavaFileManager compile(String pkg, String className, String src) {
     URI uri = URI.create("temp://" + pkg.replace(".", "/") + "/" + className + ".java");
     JavaFileObject loopSource = new SourceObject(uri, Kind.SOURCE, src);
     StringWriter writer = new StringWriter();
@@ -144,7 +154,7 @@ class BenchmarkCompiler {
       }
       throw new IllegalStateException("Compilation failed");
     }
-    return fileManager.getForkingClassLoader(origin);
+    return fileManager;
   }
 
   private static LongUnaryOperator jitObfuscate(LongUnaryOperator target) {
