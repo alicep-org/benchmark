@@ -23,6 +23,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.junit.runner.Description;
+import org.junit.runner.Runner;
 import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.ParentRunner;
 import org.junit.runners.model.FrameworkField;
@@ -32,7 +33,7 @@ import org.junit.runners.model.TestClass;
 
 import com.google.common.collect.ImmutableMap;
 
-public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.ParameterisedMethodBenchmark> {
+public class BenchmarkRunner extends ParentRunner<Runner> {
 
   @Documented
   @Retention(RetentionPolicy.RUNTIME)
@@ -53,23 +54,56 @@ public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.ParameterisedM
   @Target(ElementType.FIELD)
   public @interface Configuration { }
 
-  private final List<ParameterisedMethodBenchmark> benchmarks;
+  private final List<Runner> benchmarks;
 
-  private static List<ParameterisedMethodBenchmark> getBenchmarks(TestClass testClass) throws InitializationError {
+  private static List<Runner> getBenchmarks(TestClass testClass) throws InitializationError {
     try {
       List<FrameworkMethod> methods = testClass.getAnnotatedMethods(Benchmark.class);
-      FrameworkField configurationsField = getOnlyElement(testClass.getAnnotatedFields(Configuration.class));
-      List<?> configurations = (List<?>) configurationsField.get(null);
       testClass.getOnlyConstructor();
-      List<ParameterisedMethodBenchmark> benchmarks = new ArrayList<>();
-      for (FrameworkMethod method : methods) {
-        benchmarks.add(new ParameterisedMethodBenchmark(
-            testClass, method, configurationsField, configurations));
+      FrameworkField configurationsField = getOnlyElement(testClass.getAnnotatedFields(Configuration.class), null);
+      if (configurationsField != null) {
+        return configuredBenchmarks(testClass, methods, configurationsField);
+      } else {
+        return unconfiguredBenchmarks(testClass, methods);
       }
-      return benchmarks;
     } catch (RuntimeException | IllegalAccessException e) {
       throw new InitializationError(e);
     }
+  }
+
+  @TargetError
+  private static Description createSingleBenchmarkDescription(
+      TestClass cls,
+      FrameworkMethod method,
+      Object configuration) {
+    String name = method.getName() + ((configuration != null) ? " [" + configuration + "]" : "");
+    return createTestDescription(cls.getName(), name);
+  }
+
+  private static List<Runner> unconfiguredBenchmarks(TestClass testClass, List<FrameworkMethod> methods) {
+    List<Runner> benchmarks = new ArrayList<>();
+    for (FrameworkMethod method : methods) {
+      Description description = createSingleBenchmarkDescription(testClass, method, null);
+      Supplier<LongUnaryOperator> hotLoopFactory = () -> BenchmarkCompiler.compileBenchmark(
+          testClass.getJavaClass(),
+          method.getMethod(),
+          BenchmarkRunner::isCoreCollection);
+      benchmarks.add(new SingleBenchmark(description, hotLoopFactory));
+    }
+    return benchmarks;
+  }
+
+  private static List<Runner> configuredBenchmarks(
+      TestClass testClass,
+      List<FrameworkMethod> methods,
+      FrameworkField configurationsField) throws IllegalAccessException, InitializationError {
+    List<?> configurations = (List<?>) configurationsField.get(null);
+    List<Runner> benchmarks = new ArrayList<>();
+    for (FrameworkMethod method : methods) {
+      benchmarks.add(new ParameterisedMethodBenchmark(
+          testClass, method, configurationsField, configurations));
+    }
+    return benchmarks;
   }
 
   public BenchmarkRunner(Class<?> testClass) throws InitializationError {
@@ -78,12 +112,12 @@ public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.ParameterisedM
   }
 
   @Override
-  protected List<ParameterisedMethodBenchmark> getChildren() {
+  protected List<Runner> getChildren() {
     return benchmarks;
   }
 
   @Override
-  protected Description describeChild(ParameterisedMethodBenchmark benchmark) {
+  protected Description describeChild(Runner benchmark) {
     return benchmark.getDescription();
   }
 
@@ -98,13 +132,12 @@ public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.ParameterisedM
   }
 
   @Override
-  protected void runChild(ParameterisedMethodBenchmark benchmark, RunNotifier notifier) {
+  protected void runChild(Runner benchmark, RunNotifier notifier) {
     benchmark.run(notifier);
   }
 
   static class ParameterisedMethodBenchmark extends ParentRunner<SingleBenchmark> {
     private final FrameworkMethod method;
-    private final MemoryAllocationMonitor memoryAllocationMonitor;
     private final List<SingleBenchmark> flavours;
 
     ParameterisedMethodBenchmark(
@@ -114,7 +147,6 @@ public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.ParameterisedM
         List<?> configurations) throws InitializationError {
       super(testClass.getJavaClass());
       this.method = method;
-      this.memoryAllocationMonitor = MemoryAllocationMonitor.get();
       this.flavours = IntStream.iterate(0, i -> ++i)
           .limit(configurations.size())
           .mapToObj(index -> singleBenchmark(testClass, method, configurationsField, configurations, index))
@@ -122,15 +154,14 @@ public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.ParameterisedM
           .collect(toList());
     }
 
-    private SingleBenchmark singleBenchmark(
+    private static SingleBenchmark singleBenchmark(
         TestClass testClass,
         FrameworkMethod method,
         FrameworkField configurationsField,
         List<?> configurations,
         int index) {
       Object configuration = configurations.get(index);
-      Description description = createTestDescription(
-          testClass.getJavaClass(), method.getName() + " [" + configuration + "]");
+      Description description = createSingleBenchmarkDescription(testClass, method, configuration);
       Supplier<LongUnaryOperator> hotLoopFactory = () -> BenchmarkCompiler.compileBenchmark(
           testClass.getJavaClass(),
           method.getMethod(),
@@ -140,8 +171,7 @@ public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.ParameterisedM
       return new SingleBenchmark(
           description,
           hotLoopFactory,
-          configurations.get(index),
-          memoryAllocationMonitor);
+          configurations.get(index));
     }
 
     @Override
@@ -159,7 +189,7 @@ public class BenchmarkRunner extends ParentRunner<BenchmarkRunner.ParameterisedM
         System.out.println(" ** " + interferenceWarning.value() + " **");
         System.out.println("    Run in isolation for trustworthy results");
       }
-      memoryAllocationMonitor.warnIfMonitoringDisabled();
+      MemoryAllocationMonitor.get().warnIfMonitoringDisabled();
       super.run(notifier);
       System.out.println();
     }

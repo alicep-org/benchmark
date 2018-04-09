@@ -36,23 +36,43 @@ class BenchmarkCompiler {
   public static LongUnaryOperator compileBenchmark(
       Class<?> cls,
       Method method,
+      Predicate<Class<?>>... forkingCoreClassesMatching) {
+    return compileBenchmark(cls, method, null, -1, forkingCoreClassesMatching);
+  }
+
+  /**
+   * Returns an object that wraps a benchmark method and invokes it in a loop.
+   *
+   * <p>The object is freshly code-generated each call, and uses an unshared class-loader,
+   * meaning any user classes will be re-JITted. Types under the java packages may still
+   * cause polymorphic dispatch timing issues.
+   */
+  @SafeVarargs
+  public static LongUnaryOperator compileBenchmark(
+      Class<?> cls,
+      Method method,
       Field configurations,
       int index,
       Predicate<Class<?>>... forkingCoreClassesMatching) {
     checkArgument(cls.isAssignableFrom(method.getDeclaringClass()));
-    checkArgument(isStatic(configurations.getModifiers()));
     String pkg = method.getDeclaringClass().getPackage().getName();
     if (pkg.startsWith("java.")) {
       pkg = "looper." + pkg;
     }
     String className = "Benchmark_" + count.incrementAndGet();
 
-    String configurationName = configurations.getDeclaringClass().getName()
-                + "." + configurations.getName();
+    String constructorParam = "";
+    if (configurations != null) {
+      checkArgument(isStatic(configurations.getModifiers()));
+      checkArgument(index >= 0);
+      String configurationName = configurations.getDeclaringClass().getName()
+                  + "." + configurations.getName();
+      constructorParam = configurationName + ".get(" + index + ")";
+    }
     String src = "package " + pkg + ";\n"
         + "public class " + className + " implements " + LongUnaryOperator.class.getName() + " {\n"
         + "  private final " + declaration(cls) + " test =\n"
-        + "      " + construct(cls) + "(" + configurationName + ".get(" + index + "));\n"
+        + "      " + construct(cls) + "(" + constructorParam + ");\n"
         + "  @Override\n"
         + "  public long applyAsLong(long iterations) {\n"
         + "    long startTime = " + System.class.getName() + ".nanoTime();\n"

@@ -30,17 +30,22 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
   private final Description description;
   private final Supplier<LongUnaryOperator> hotLoopFactory;
   private final Object configuration;
-  private final MemoryAllocationMonitor memoryAllocationMonitor;
+
+  SingleBenchmark(
+      Description description,
+      Supplier<LongUnaryOperator> hotLoopFactory) {
+    this.description = description;
+    this.hotLoopFactory = hotLoopFactory;
+    this.configuration = null;
+  }
 
   SingleBenchmark(
       Description description,
       Supplier<LongUnaryOperator> hotLoopFactory,
-      Object configuration,
-      MemoryAllocationMonitor memoryAllocationMonitor) {
+      Object configuration) {
     this.description = description;
     this.hotLoopFactory = hotLoopFactory;
     this.configuration = configuration;
-    this.memoryAllocationMonitor = memoryAllocationMonitor;
   }
 
   @Override
@@ -50,7 +55,9 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
 
   @Override
   public int compareTo(SingleBenchmark o) {
-    if (config() instanceof Comparable) {
+    if (config() == null) {
+      return Ordering.arbitrary().compare(this, o);
+    } else if (config() instanceof Comparable) {
       return Ordering.natural().compare((Comparable<?>) config(), (Comparable<?>) o.config());
     } else {
       return Ordering.natural().compare(config().toString(), o.config().toString());
@@ -68,7 +75,11 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
       // The hot loop we are timing
       LongUnaryOperator hotLoop = hotLoopFactory.get();
 
-      System.out.print(config() + ": ");
+      if (config() == null) {
+        System.out.print(description.getMethodName() + ": ");
+      } else {
+        System.out.print(config() + ": ");
+      }
       if (System.getenv("CI") == null) {
         System.out.flush();
       }
@@ -98,6 +109,8 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
 
       // How many memory samples we've taken
       int memorySamples = 0;
+
+      MemoryAllocationMonitor memoryAllocationMonitor = MemoryAllocationMonitor.get();
 
       do {
         if (memorySamples == 0) {
