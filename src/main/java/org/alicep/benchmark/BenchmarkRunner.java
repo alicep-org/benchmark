@@ -1,6 +1,7 @@
 package org.alicep.benchmark;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
@@ -51,6 +52,11 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
 
   @Documented
   @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.METHOD)
+  public @interface BenchmarkClassLoader { }
+
+  @Documented
+  @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.FIELD)
   public @interface Configuration { }
 
@@ -85,12 +91,23 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
     for (FrameworkMethod method : methods) {
       Description description = createSingleBenchmarkDescription(testClass, method, null);
       Supplier<LongUnaryOperator> hotLoopFactory = () -> BenchmarkCompiler.compileBenchmark(
+          getClassLoader(testClass),
           testClass.getJavaClass(),
           method.getMethod(),
           BenchmarkRunner::isCoreCollection);
       benchmarks.add(new SingleBenchmark(description, hotLoopFactory));
     }
     return benchmarks;
+  }
+
+  private static ClassLoader getClassLoader(TestClass testClass) {
+    FrameworkMethod classLoaderMethod = getOnlyElement(testClass.getAnnotatedMethods(BenchmarkClassLoader.class), null);
+    checkState(classLoaderMethod.isStatic(), "%s must be static", classLoaderMethod);
+    try {
+      return (ClassLoader) classLoaderMethod.invokeExplosively(null);
+    } catch (Throwable e) {
+      throw new AssertionError(e);
+    }
   }
 
   private static List<Runner> configuredBenchmarks(
@@ -163,6 +180,7 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
       Object configuration = configurations.get(index);
       Description description = createSingleBenchmarkDescription(testClass, method, configuration);
       Supplier<LongUnaryOperator> hotLoopFactory = () -> BenchmarkCompiler.compileBenchmark(
+          getClassLoader(testClass),
           testClass.getJavaClass(),
           method.getMethod(),
           configurationsField.getField(),

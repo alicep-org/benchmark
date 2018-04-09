@@ -34,10 +34,11 @@ class BenchmarkCompiler {
    */
   @SafeVarargs
   public static LongUnaryOperator compileBenchmark(
+      ClassLoader classLoader,
       Class<?> cls,
       Method method,
       Predicate<Class<?>>... forkingCoreClassesMatching) {
-    return compileBenchmark(cls, method, null, -1, forkingCoreClassesMatching);
+    return compileBenchmark(classLoader, cls, method, null, -1, forkingCoreClassesMatching);
   }
 
   /**
@@ -49,6 +50,7 @@ class BenchmarkCompiler {
    */
   @SafeVarargs
   public static LongUnaryOperator compileBenchmark(
+      ClassLoader classLoader,
       Class<?> cls,
       Method method,
       Field configurations,
@@ -83,7 +85,7 @@ class BenchmarkCompiler {
         + "    return endTime - startTime;\n"
         + "  }\n"
         + "}\n";
-    ForkingClassLoader generatedClasses = compile(cls.getClassLoader(), pkg, className, src);
+    ForkingClassLoader generatedClasses = compile(classLoader, pkg, className, src);
     Arrays.asList(forkingCoreClassesMatching).forEach(generatedClasses::forkingCoreClassesMatching);
     try {
       Class<?> generatedClass = generatedClasses.loadClass(pkg + "." + className);
