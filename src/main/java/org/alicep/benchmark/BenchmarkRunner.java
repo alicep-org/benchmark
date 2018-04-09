@@ -3,18 +3,22 @@ package org.alicep.benchmark;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.getOnlyElement;
+import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.junit.runner.Description.createTestDescription;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.lang.annotation.Annotation;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +64,17 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
   @Target(ElementType.FIELD)
   public @interface Configuration { }
 
+  /**
+   * Target sample error. Benchmarks will run until they are 99% confidence that the sample mean is within this
+   * fraction of the estimated mean.
+   */
+  @Documented
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target({ ElementType.TYPE, ElementType.METHOD })
+  public @interface TargetError {
+    double value() default 0.01;
+  }
+
   private final List<Runner> benchmarks;
 
   private static List<Runner> getBenchmarks(TestClass testClass) throws InitializationError {
@@ -82,8 +97,23 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
       TestClass cls,
       FrameworkMethod method,
       Object configuration) {
-    String name = method.getName() + ((configuration != null) ? " [" + configuration + "]" : "");
-    return createTestDescription(cls.getName(), name);
+    try {
+      String name = method.getName() + ((configuration != null) ? " [" + configuration + "]" : "");
+      Map<Class<? extends Annotation>, Annotation> annotations = new HashMap<>();
+      Method thisMethod = BenchmarkRunner.class.getDeclaredMethod(
+          "createSingleBenchmarkDescription", TestClass.class, FrameworkMethod.class, Object.class);
+      stream(thisMethod.getAnnotations()).forEach(annotation -> {
+        Class<? extends Annotation> type = annotation.annotationType();
+        annotations.put(type, Stream
+            .of(method.getAnnotation(type), cls.getAnnotation(type))
+            .filter(obj -> obj != null)
+            .findFirst()
+            .orElse(annotation));
+      });
+      return createTestDescription(cls.getName(), name, annotations.values().toArray(new Annotation[0]));
+    } catch (ReflectiveOperationException e) {
+      throw new AssertionError(e);
+    }
   }
 
   private static List<Runner> unconfiguredBenchmarks(TestClass testClass, List<FrameworkMethod> methods) {

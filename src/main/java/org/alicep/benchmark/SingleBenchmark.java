@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
+import org.alicep.benchmark.BenchmarkRunner.TargetError;
 import org.junit.AssumptionViolatedException;
 import org.junit.runner.Description;
 import org.junit.runner.Runner;
@@ -21,7 +22,6 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
 
   private static Duration MIN_HOT_LOOP_TIME = Duration.ofMillis(50);
   private static int MIN_MEASUREMENT_ITERATIONS = 5;
-  private static final double TARGET_ERROR = 0.01;
 
   private static final double OUTLIER_EWMAV_WEIGHT = 0.1;
   private static final int OUTLIER_WINDOW = 20;
@@ -77,6 +77,8 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
       // The hot loop we are timing
       LongUnaryOperator hotLoop = hotLoopFactory.get();
       Thread.currentThread().setContextClassLoader(hotLoop.getClass().getClassLoader());
+
+      double targetError = description.getAnnotation(TargetError.class).value();
 
       if (config() == null) {
         System.out.print(description.getMethodName() + ": ");
@@ -174,7 +176,7 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
           // Calculate ongoing sample error
           double sampleError = sqrt((tSS - tS*tS/(timingSamples + 1)) / ((timingSamples + 1) * timingSamples));
           double confidenceInterval = sampleError * CONFIDENCE_INTERVAL_99_PERCENT;
-          boolean lowSampleError = confidenceInterval * timingSamples < tS * TARGET_ERROR;
+          boolean lowSampleError = confidenceInterval * timingSamples < tS * targetError;
 
           // Break out of the loop if we're confident our error is low
           boolean enoughSamples = timingSamples >= MIN_MEASUREMENT_ITERATIONS;
