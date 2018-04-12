@@ -10,18 +10,14 @@ env:
     - PGP_KEY_ID="2887CE9B"
     - PGP_PASSWORD=""
     - PGP_SECRET_KEY_RING_FILE=~/.gnupg/secring.gpg
-      # NEXUS_USERNAME
-    - secure: "kRk61tlw0URMCAn4Pmf2SBe9xHIbsBb+gxGILHoTE3KwXYvkxyVmNnNmaXEvk8Z1yfGro5ZrqWJXtdjB/wM5No5YNe8LIoWGqECa7kAuyjms7kDG3aDUGoRQIcbYfYm6SbqWI9aaIJUOoNiggxOrSq518Nw8M4fElBUDIQlTYhpDxSsaWbe3LF8/YooElb+fuFz68YEJTKA2U065UaoU31anplniYFGvO5Nup1WKuwz3Ap3Kpn9nez+RPnJCdVDxamwsoEqsLS0L0MakniP2n1+DZkxi23pzmLx+xw+G9vCphsG3kEQaWzzc4K5p3en097HO/rPwNmXimnOOUNqAyjf1UWHKACYvVFBfF6qwQ39kPmiPJz94MKSrelRhn1JQfP3Vu4BY0MPRh5lLWtJIuYrpNyvCCOfA0kOYD2Wsz19HqTBD5QnBAqIi1Wny4p3Qwy1f664lUfsnzHk/jWeji9093K19+FkpmQ2dCyr1Nm39DIOLhyI4Bqh58dtpPj+VhhFDnwpnM2IJxy5hUhKlYdVtWqGyrLVrfJiUGDrXGWB3r1pRyQ5muFFvpsTvmeCOKKEYq5+CbhZlj3p6Fc2BY21WIuIPk4UoCjqW2UsuAzywSRVrdqCfVL087XP1/5PgtkD7/pLL8R7ywYs9MtxyJc8Rl8sJ1B75AjiWzHx9SKQ="
-      # NEXUS_PASSWORD
-    - secure: "SRx6S+8XM1P3/Or0FiPPa27qnDXdEc1N1EG8HjJFP+GnyRMtJgfB3kDcdyJoci1gGvR8TV8AbOCC9FQ4ERE6d9j7kgBSIcFIvUmDPaEz1fV7oMUt1yuNxH8xRqx6q03VyHqcwnfK0kZWe3UcwZXMSrPbO4optp8eOiifQMS704qKA9ExVTNpGLwJLv0yDb7EnthI1w+0km6lj2VQ/0IZUXf8z006p/srx5b7dblNZa47p/pqTXu/2C7EigvkYoS07vDNszf6LO7X/K5pv4GDwFW2ZPm9q7ENtJViTVDluNRMH+pzMhgtFNU/dkDXAEW4V3A2b62hMa3BVxWE/GnaxiSjpzEhsDbkmc5EOXVshbUe/PS1WSeYFq0jz25RVy91aDJQgAf27BeHSziNfCgPZs9nMupBwMjz5AZOhTh5mGX+1JfLsDLex2QMwpUHYlTrAj56rMund1jsZnYkvSKQDSI8f1pIs7UuhW8+NtwxzDjdSbz2m+v+qUDgDgL8mraIZzERUzYQIH9c3Qssn3KCj14ieIwBfRy1zh+Ibn8rBTgnz6tyhdNDU8Yt1H/XWNEwXbYSEx+kW0WP4/4SHS0pbHB4hjBwWcwcMKyJyznnnz7jmyuX95aX9E8mQKNgweBtc+v1EMxmNa0sKLypEX9XjzFdgZluQ2l1zZ4iVvjKlhk="
-
-before_deploy:
-  - openssl aes-256-cbc -K $encrypted_8ca725689fbc_key -iv $encrypted_8ca725689fbc_iv -in gradle/codesigning.asc.enc -out codesigning.asc -d
-  - gpg --fast-import -q codesigning.asc
+    - BINTRAY_USER=cjp39
+    - BINTRAY_ORG=alicep-org
+      # BINTRAY_KEY
+    - secure: "GFIsdBY/eA1bbDVBU2RFSPJFm2Nu4tU99M90EJFhtoyAfJJKjulwjm3R9C+6gkXIznILbhnQea3GVokXgwOzzQMueBMIWqL5FaYXUF5mR1DMpCImV7nVBo26zc6UaPDPa2i6fjnsJa1+DAFhhr6xtdFJIiNeB7C6jLDrs/S8J2UMKfUVmZd1zId0ZPn3pa3jbdLeupDyPaMHwbCHBSGkInETlKkACfHvNTvoXyN4SlY+d4GvgC0+oh+0kie/M0GGl3/R/zG1Ry0SGvIuL8wctPEeNBP+MgaqyWrvi/9zkvZ6rRTtuEu+pRtcNJJKAQ2DYm+y4DqYKCwdeWN4G+A/oyGCiyvORB7uolCFanLo/8E3Rgz8XlDDzTwW1IFPvniLFIwIEtXtbk15/DcRC5y2Clcsy1jJnWTgMEDhCWtaXUf2iGcMJDO+MEO00t5S88OowSbIFFD3n/xxnuP9UTtoN7k6bmzJunIzThuWWPpOC8KAeyI0cMLfA9Rhs97lsFxCoySGgw/6hf5vcqVXlAh0Td+vRLqrXbdg9vHVW3sIhHN9yCsnxzTXlaP7H5dijFqL1gOLsl3OzvdQiTVLLbV8fREl+I2VeHSXJtAI6due4eqrURmBLknkszAmPuiAaEFLL8KWgnCNr6rY9rd/Bj0CuHTkZIrj1GxaSG2kZ20faR4="
 
 deploy:
   skip_cleanup: true
   provider: script
-  script: ./gradlew upload closeAndPromoteRepository --stacktrace --info
+  script: ./gradlew bintrayUpload --stacktrace --info
   on:
     tags: true

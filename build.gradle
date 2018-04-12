@@ -1,18 +1,10 @@
-buildscript {
-  repositories {
-    jcenter()
-  }
-  dependencies {
-    classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3'
-  }
-}
-
 plugins {
   id 'eclipse'
   id 'java'
-  id 'com.bmuschko.nexus' version '2.3.1'
+  id 'java-library'
+  id 'maven-publish'
+  id 'com.jfrog.bintray' version '1.7.3'
 }
-apply plugin: 'io.codearte.nexus-staging'
 
 apply from: "$rootDir/gradle/publication.gradle"
 apply from: "$rootDir/gradle/testing.gradle"
@@ -21,43 +13,34 @@ repositories {
   mavenCentral()
 }
 
-group = 'org.alicep'
-archivesBaseName = 'benchmark'
-
 sourceCompatibility = 1.8
 
 dependencies {
+  api junit
   compile byteBuddy
   compile guava
-  compile junit
 }
 
-modifyPom {
+pom {
   project {
-    name 'Java Benchmark Utilities'
-    description 'Benchmark Utilities for Java'
-    url 'https://github.com/alicep-org/benchmark'
+    groupId = 'org.alicep'
+    artifactId = 'benchmark'
+    name = 'alicep.org - benchmark'
+    description = 'Benchmark Utilities for Java'
+    url = 'https://github.com/alicep-org/benchmark'
+    license = apache2
+  }
 
-    scm {
-      url 'https://github.com/alicep-org/benchmark'
-      connection 'scm:git:git://github.com/alicep-org/benchmark.git'
-      developerConnection 'scm:git:git@github.com:alicep-org/benchmark.git'
-    }
+  scm {
+    github 'alicep-org/benchmark'
+  }
 
-    licenses {
-      license {
-        name 'Apache 2.0'
-        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-      }
-    }
-
-    developers {
-      developer {
-        id 'alicederyn'
-        name 'Alice Purcell'
-        email 'Alice.Purcell.39@gmail.com'
-        timezone 'Europe/London'
-      }
+  developers {
+    developer {
+      id = 'alicederyn'
+      name = 'Alice Purcell'
+      email = 'Alice.Purcell.39@gmail.com'
+      timezone = 'Europe/London'
     }
   }
 }
