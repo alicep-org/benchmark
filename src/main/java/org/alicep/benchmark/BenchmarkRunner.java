@@ -65,6 +65,36 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
   public @interface Configuration { }
 
   /**
+   * Minimum time to run the benchmark for (including discarded samples).
+   */
+  @Documented
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target({ ElementType.TYPE, ElementType.METHOD })
+  public @interface MinBenchmarkTime {
+    long millis() default 250;
+  }
+
+  /**
+   * Minimum samples to take in a benchmark.
+   */
+  @Documented
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target({ ElementType.TYPE, ElementType.METHOD })
+  public @interface MinSamples {
+    int value() default 5;
+  }
+
+  /**
+   * Minimum time to run for each sample.
+   */
+  @Documented
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target({ ElementType.TYPE, ElementType.METHOD })
+  public @interface MinSampleTime {
+    long millis() default 50;
+  }
+
+  /**
    * Target sample error. Benchmarks will run until they are 99% confidence that the sample mean is within this
    * fraction of the estimated mean.
    */
@@ -92,6 +122,9 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
     }
   }
 
+  @MinBenchmarkTime
+  @MinSamples
+  @MinSampleTime
   @TargetError
   private static Description createSingleBenchmarkDescription(
       TestClass cls,

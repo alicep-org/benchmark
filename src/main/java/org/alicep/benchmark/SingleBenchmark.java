@@ -4,11 +4,13 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Math.sqrt;
 import static org.alicep.benchmark.Bytes.bytes;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
+import org.alicep.benchmark.BenchmarkRunner.MinBenchmarkTime;
+import org.alicep.benchmark.BenchmarkRunner.MinSampleTime;
+import org.alicep.benchmark.BenchmarkRunner.MinSamples;
 import org.alicep.benchmark.BenchmarkRunner.TargetError;
 import org.junit.AssumptionViolatedException;
 import org.junit.runner.Description;
@@ -19,9 +21,6 @@ import org.junit.runner.notification.RunNotifier;
 import com.google.common.collect.Ordering;
 
 class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
-
-  private static Duration MIN_HOT_LOOP_TIME = Duration.ofMillis(50);
-  private static int MIN_MEASUREMENT_ITERATIONS = 5;
 
   private static final double OUTLIER_EWMAV_WEIGHT = 0.1;
   private static final int OUTLIER_WINDOW = 20;
@@ -79,6 +78,9 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
       Thread.currentThread().setContextClassLoader(hotLoop.getClass().getClassLoader());
 
       double targetError = description.getAnnotation(TargetError.class).value();
+      long minBenchmarkNanos = description.getAnnotation(MinBenchmarkTime.class).millis() * 1_000_000;
+      int minSamples = description.getAnnotation(MinSamples.class).value();
+      long minSampleNanos = description.getAnnotation(MinSampleTime.class).millis() * 1_000_000;
 
       if (config() == null) {
         System.out.print(description.getMethodName() + ": ");
@@ -115,6 +117,8 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
       // How many memory samples we've taken
       int memorySamples = 0;
 
+      long startTimeNanos = System.nanoTime();
+
       MemoryAllocationMonitor memoryAllocationMonitor = MemoryAllocationMonitor.get();
 
       do {
@@ -129,7 +133,7 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
         }
 
         long elapsed = hotLoop.applyAsLong(hotLoopIterations);
-        if (elapsed < MIN_HOT_LOOP_TIME.toNanos()) {
+        if (elapsed < minSampleNanos) {
           // Restart if the hot loop did not take enough time running
           hotLoopIterations = hotLoopIterations + (hotLoopIterations >> 1) + 1;
           timingSamples = -1;
@@ -179,8 +183,9 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
           boolean lowSampleError = confidenceInterval * timingSamples < tS * targetError;
 
           // Break out of the loop if we're confident our error is low
-          boolean enoughSamples = timingSamples >= MIN_MEASUREMENT_ITERATIONS;
-          if (enoughSamples && lowSampleError) {
+          boolean enoughSamples = timingSamples >= minSamples;
+          boolean enoughTotalTime = (System.nanoTime() - startTimeNanos) >= minBenchmarkNanos;
+          if (enoughSamples && enoughTotalTime && lowSampleError) {
             monitor.stop();
             usageAfterRun = memoryAllocationMonitor.memoryUsed();
             timingSamples++;
