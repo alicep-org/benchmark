@@ -3,6 +3,7 @@
 Benchmark your code to nanosecond and byte precision with ease.
 
 [![Build Status](https://travis-ci.org/alicep-org/benchmark.svg?branch=master)](https://travis-ci.org/alicep-org/benchmark)
+[![Download](https://api.bintray.com/packages/alicep-org/maven/benchmark/images/download.svg)](https://bintray.com/alicep-org/maven/benchmark/_latestVersion)
 
 ## Resident memory usage
 
