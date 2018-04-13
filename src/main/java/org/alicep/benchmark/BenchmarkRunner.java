@@ -162,6 +162,9 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
 
   private static ClassLoader getClassLoader(TestClass testClass) {
     FrameworkMethod classLoaderMethod = getOnlyElement(testClass.getAnnotatedMethods(BenchmarkClassLoader.class), null);
+    if (classLoaderMethod == null) {
+      return testClass.getJavaClass().getClassLoader();
+    }
     checkState(classLoaderMethod.isStatic(), "%s must be static", classLoaderMethod);
     try {
       return (ClassLoader) classLoaderMethod.invokeExplosively(null);
