@@ -7,11 +7,11 @@ Benchmark your code to nanosecond and byte precision with ease.
 
 ## Resident memory usage
 
-`MemGauge.measureMemoryUsage` lets you determine the memory consumed by an object or collection of objects to byte precision in a fraction of a second. By triggering repeated GC cycles and watching the notifications, with a few tricks to overcome the JVM's intransigence, you can not only discover but unit test your memory usage.
+`MemGauge.objectSize` lets you determine the memory consumed by an object or collection of objects to byte precision in a fraction of a second. By triggering repeated GC cycles and watching the notifications, with a few tricks to overcome the JVM's intransigence, you can not only discover but unit test your memory usage.
 
 ```
 // Round up to a multiple of 4 and add 16 bits of header (object header + size)
-assertEquals(bytes(24), measureMemoryUsage(i -> new byte[5]));
+assertEquals(bytes(24), objectSize(i -> new byte[5]));
 ```
 
 Currently assumes a parallel sweep garbage collector and uses Sun internal classes; YMMV as to whether this works in your JVM.

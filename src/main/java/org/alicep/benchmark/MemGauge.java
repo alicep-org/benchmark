@@ -11,12 +11,12 @@ public class MemGauge {
   /**
    * Returns the memory used by an object.
    *
-   * <pre>assertEquals(bytes(24), measureMemoryUsage(Long::new));</pre>
+   * <pre>assertEquals(bytes(24), objectSize(Long::new));</pre>
    *
    * @param factory Provider of instances to measure
-   * @return Memory usage in bytes
+   * @return memory usage in bytes
    */
-  public static Bytes measureMemoryUsage(IntFunction<?> factory) {
+  public static Bytes objectSize(IntFunction<?> factory) {
     MemoryAllocationMonitor monitor = MemoryAllocationMonitor.get();
     if (monitor.memoryUsed() == -1) {
       throw new AssertionError("Cannot measure memory on this JVM");
