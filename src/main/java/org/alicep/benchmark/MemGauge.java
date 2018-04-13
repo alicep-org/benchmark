@@ -46,7 +46,7 @@ public class MemGauge {
         double lowerBound = (double)(consumption - granularity) / iterations;
         double upperBound = (double) consumption / iterations;
         if (upperBound < 0.05 || upperBound < lowerBound * 1.01) {
-          return bytes(Math.round(upperBound));
+          return bytes(Math.round((lowerBound + upperBound) / 2));
         }
       }
     }
