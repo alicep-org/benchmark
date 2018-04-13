@@ -9,6 +9,54 @@ import java.util.function.Supplier;
 public class MemGauge {
 
   /**
+   * Used to prevent HotSpot optimizing away unused objects. Volatile just to be certain.
+   */
+  @SuppressWarnings("unused")
+  private static volatile Object sink;
+
+  interface CheckedRunnable<E extends Exception> {
+    Object run() throws E;
+  }
+
+  /**
+   * Returns the memory allocated on the stack by {@code command}.
+   *
+   * @param <E> checked exception thrown by command (RuntimeException if command is unchecked)
+   * @param command command to run; should return any final result so HotSpot cannot optimize away any allocations
+   * @return allocated memory in bytes, to the nearest 1%
+   *
+   * @throws InterruptedException if interrupted
+   * @throws E if {@code command} throws E
+   */
+  public static <E extends Exception>
+      Bytes memoryConsumption(CheckedRunnable<E> command) throws E, InterruptedException {
+    // How accurate our memory measurements are (empirically)
+    long granularity = 1;
+
+    try (EdenMonitor monitor = EdenMonitor.create()) {
+      for (long iterations = 1; ; iterations *= 4) {
+        monitor.reset();
+        for (long i = 0; i < iterations; i++) {
+          sink = command.run();
+        }
+        sink = null;
+        long consumption = monitor.freed();
+
+        sink = new byte[0];
+        sink = null;
+        long emptyConsumption = monitor.freed();
+
+        granularity = Math.max(granularity, emptyConsumption);
+        double lowerBound = (double)(consumption - granularity) / iterations;
+        double upperBound = (double) consumption / iterations;
+        if (upperBound < 0.05 || upperBound < lowerBound * 1.01) {
+          return bytes(Math.round(upperBound));
+        }
+      }
+    }
+  }
+
+  /**
    * Returns the memory used by an object.
    *
    * <pre>assertEquals(bytes(24), objectSize(Long::new));</pre>

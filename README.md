@@ -5,13 +5,21 @@ Benchmark your code to nanosecond and byte precision with ease.
 [![Build Status](https://travis-ci.org/alicep-org/benchmark.svg?branch=master)](https://travis-ci.org/alicep-org/benchmark)
 [![Download](https://api.bintray.com/packages/alicep-org/maven/benchmark/images/download.svg)](https://bintray.com/alicep-org/maven/benchmark/_latestVersion)
 
-## Resident memory usage
+## Memory usage
 
-`MemGauge.objectSize` lets you determine the memory consumed by an object or collection of objects to byte precision in a fraction of a second. By triggering repeated GC cycles and watching the notifications, with a few tricks to overcome the JVM's intransigence, you can not only discover but unit test your memory usage.
+`MemGauge.objectSize` lets you determine the memory consumed by an object or collection of objects to byte precision in a fraction of a second; `MemGauge.memoryConsumption` determines the total memory allocated on the heap by a method to within 1%. By triggering repeated GC cycles and watching the notifications, with a few tricks to overcome the JVM's intransigence, you can not only discover but unit test your memory usage.
 
 ```
 // Round up to a multiple of 4 and add 16 bits of header (object header + size)
 assertEquals(bytes(24), objectSize(() -> new byte[5]));
+
+// Allocates two byte[5]
+assertEquals(bytes(48), memoryConsumption(() -> {
+  byte[] bytes = new byte[5];
+  bytes[2] = 3;
+  // Return the result to ensure HotSpot does not optimise away the allocations
+  return Arrays.copyOf(bytes, 5);
+});
 ```
 
 Currently assumes a parallel sweep garbage collector and uses Sun internal classes; YMMV as to whether this works in your JVM.
