@@ -13,19 +13,19 @@ public class Bytes implements Comparable<Bytes> {
     return new Bytes(bytes);
   }
 
-  public static Bytes kilobytes(long kilobytes) {
+  public static Bytes kilobytes(double kilobytes) {
     checkArgument(kilobytes >= 0);
-    return new Bytes(kilobytes * 1_000);
+    return new Bytes((long) (kilobytes * 1_000));
   }
 
-  public static Bytes megabytes(long megabytes) {
+  public static Bytes megabytes(double megabytes) {
     checkArgument(megabytes >= 0);
-    return new Bytes(megabytes * 1_000_000);
+    return new Bytes((long) (megabytes * 1_000_000));
   }
 
-  public static Bytes gigabytes(long gigabytes) {
+  public static Bytes gigabytes(double gigabytes) {
     checkArgument(gigabytes >= 0);
-    return new Bytes(gigabytes * 1_000_000_000);
+    return new Bytes((long) (gigabytes * 1_000_000_000));
   }
 
   private final long bytes;
