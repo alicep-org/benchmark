@@ -23,7 +23,7 @@ public class MemGaugeTests {
 
   @Test
   public void objectSize_byteArray() {
-    // Round up to a multiple of 4 and add 16 bits of header (object header + size)
+    // Round up to a multiple of 4 and add 16 bytes of header (object header + size)
     assertEquals(bytes(24), objectSize(() -> new byte[5]));
   }
 
@@ -46,7 +46,7 @@ public class MemGaugeTests {
 
   @Test
   public void memoryConsumption_allocateOneByteArray() throws InterruptedException {
-    // Round up to a multiple of 4 and add 16 bits of header (object header + size)
+    // Round up to a multiple of 4 and add 16 bytes of header (object header + size)
     assertEquals(bytes(24), memoryConsumption(() -> {
       // Easy for HotSpot to optimize away; MemGauge needs to be careful not to let that happen
       return new byte[5];
@@ -55,7 +55,7 @@ public class MemGaugeTests {
 
   @Test
   public void memoryConsumption_allocateTwoByteArrays() throws InterruptedException {
-    // Round up to a multiple of 4 and add 16 bits of header (object header + size)
+    // Round up to a multiple of 4 and add 16 bytes of header (object header + size)
     assertEquals(bytes(2 * 24), memoryConsumption(() -> {
       byte[] bytes = new byte[5];
       bytes[2] = 3;
