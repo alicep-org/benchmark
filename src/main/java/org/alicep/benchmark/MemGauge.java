@@ -14,10 +14,6 @@ public class MemGauge {
   @SuppressWarnings("unused")
   private static volatile Object sink;
 
-  interface CheckedRunnable<E extends Exception> {
-    Object run() throws E;
-  }
-
   /**
    * Returns the memory allocated on the stack by {@code command}.
    *
