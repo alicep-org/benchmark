@@ -10,24 +10,24 @@ public class MemGaugeTests {
 
   @Test
   public void objectSize_long() {
-    assertEquals(bytes(24), objectSize(Long::new));
+    assertEquals(bytes(24), objectSize(() -> new Long(10000)));
   }
 
   @Test
   public void objectSize_string() {
-    assertEquals(bytes(56), objectSize(i -> String.format("%08x", i)));
+    assertEquals(bytes(56), objectSize(() -> String.format("%08x", 10)));
   }
 
   @Test
   public void objectSize_byteArray() {
     // Round up to a multiple of 4 and add 16 bits of header (object header + size)
-    assertEquals(bytes(24), objectSize(i -> new byte[5]));
+    assertEquals(bytes(24), objectSize(() -> new byte[5]));
   }
 
   @Test
   public void objectSize_evenSizedPointerArray() {
     // 4 bytes per pointer and a 16-bit header (object header + size)
-    assertEquals(bytes(56), objectSize(i -> new String[10]));
+    assertEquals(bytes(56), objectSize(() -> new String[10]));
   }
 
   @Test

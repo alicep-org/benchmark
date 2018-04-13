@@ -4,7 +4,7 @@ import static java.util.Arrays.sort;
 import static org.alicep.benchmark.Bytes.bytes;
 
 import java.util.Arrays;
-import java.util.function.IntFunction;
+import java.util.function.Supplier;
 
 public class MemGauge {
 
@@ -16,7 +16,7 @@ public class MemGauge {
    * @param factory Provider of instances to measure
    * @return memory usage in bytes
    */
-  public static Bytes objectSize(IntFunction<?> factory) {
+  public static Bytes objectSize(Supplier<?> factory) {
     MemoryAllocationMonitor monitor = MemoryAllocationMonitor.get();
     if (monitor.memoryUsed() == -1) {
       throw new AssertionError("Cannot measure memory on this JVM");
@@ -33,7 +33,7 @@ public class MemGauge {
     do {
       for (int i = head; i < tail; ++i) {
         @SuppressWarnings("unused")
-        Object obj = factory.apply(i);
+        Object obj = factory.get();
         long memory1 = monitor.memoryUsed();
         long memory2 = monitor.memoryUsed();
         obj = null;

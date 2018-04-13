@@ -11,7 +11,7 @@ Benchmark your code to nanosecond and byte precision with ease.
 
 ```
 // Round up to a multiple of 4 and add 16 bits of header (object header + size)
-assertEquals(bytes(24), objectSize(i -> new byte[5]));
+assertEquals(bytes(24), objectSize(() -> new byte[5]));
 ```
 
 Currently assumes a parallel sweep garbage collector and uses Sun internal classes; YMMV as to whether this works in your JVM.
