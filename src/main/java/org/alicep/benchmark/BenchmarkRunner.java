@@ -1,6 +1,5 @@
 package org.alicep.benchmark;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.util.Arrays.stream;
@@ -35,8 +34,6 @@ import org.junit.runners.model.FrameworkField;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.TestClass;
-
-import com.google.common.collect.ImmutableMap;
 
 public class BenchmarkRunner extends ParentRunner<Runner> {
 
@@ -305,42 +302,5 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
     boolean isClass = !cls.isInterface();
     boolean isCollection = Map.class.isAssignableFrom(cls) || Set.class.isAssignableFrom(cls);
     return isInJavaUtil && isClass && isCollection;
-  }
-
-  private static final Map<Integer, String> SCALES = ImmutableMap.<Integer, String>builder()
-      .put(0, "s")
-      .put(-3, "ms")
-      .put(-6, "μs")
-      .put(-9, "ns")
-      .put(-12, "ps")
-      .build();
-
-  static String formatNanos(double nanos) {
-    checkArgument(nanos >= 0);
-    if (nanos == 0) return "0s";
-    double timePerAttempt = nanos;
-    int scale = -9; // nanos
-    while (timePerAttempt < 1.0) {
-      timePerAttempt *= 1000;
-      scale -= 3;
-    }
-    while (timePerAttempt >= 999 && scale < 0) {
-      timePerAttempt /= 1000;
-      scale += 3;
-    }
-    String significand;
-    if (timePerAttempt < 9.995) {
-      significand = String.format("%.2f", timePerAttempt);
-    } else if (timePerAttempt < 99.95) {
-      significand = String.format("%.1f", timePerAttempt);
-    } else {
-      significand = Long.toString(Math.round(timePerAttempt));
-    }
-
-    if (SCALES.containsKey(scale)) {
-      return String.format("%s %s", significand, SCALES.get(scale));
-    } else {
-      return String.format("%se%d s", significand, scale);
-    }
   }
 }

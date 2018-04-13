@@ -265,7 +265,7 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
     double total = tS;
     double mean = total / iterations;
     double sd = sqrt((tSS - tS*tS/iterations) / (iterations - 1));
-    String timeSummary = BenchmarkRunner.formatNanos(mean) + " (±" + BenchmarkRunner.formatNanos(sd * CONFIDENCE_INTERVAL_99_PERCENT) + ")";
+    String timeSummary = Nanos.formatNanos(mean) + " (±" + Nanos.formatNanos(sd * CONFIDENCE_INTERVAL_99_PERCENT) + ")";
     return timeSummary;
   }
 

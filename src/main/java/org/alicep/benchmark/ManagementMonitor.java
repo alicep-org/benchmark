@@ -3,7 +3,6 @@ package org.alicep.benchmark;
 import static java.lang.management.ManagementFactory.getClassLoadingMXBean;
 import static java.lang.management.ManagementFactory.getCompilationMXBean;
 import static java.lang.management.ManagementFactory.getGarbageCollectorMXBeans;
-import static org.alicep.benchmark.BenchmarkRunner.formatNanos;
 
 import java.io.PrintStream;
 import java.lang.management.ClassLoadingMXBean;
@@ -53,7 +52,7 @@ class ManagementMonitor {
     public void printIfChanged(PrintStream ps) {
       long sweeps = stopCount - startCount;
       if (sweeps > 0) {
-        String time = formatNanos(stopTime - startTime);
+        String time = Nanos.formatNanos(stopTime - startTime);
         ps.println("  * " + sweeps + " " + bean.getName() + " collections over " + time);
       }
     }
@@ -86,7 +85,7 @@ class ManagementMonitor {
     public void printIfChanged(PrintStream ps) {
       long time = stopTime - startTime;
       if (time > 0) {
-        ps.println("  * " + formatNanos(time * 1000) + " compiling");
+        ps.println("  * " + Nanos.formatNanos(time * 1000) + " compiling");
       }
     }
   }
