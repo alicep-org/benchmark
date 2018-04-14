@@ -91,8 +91,8 @@ class EdenMonitor implements Closeable, NotificationListener {
 
     Object gcInfo = get(notification, "userData", "gcInfo");
     long id = (long) get(gcInfo, "id");
-    long before = (long) get(gcInfo, "memoryUsageBeforeGc", POOL, "value", "used");
-    long after = (long) get(gcInfo, "memoryUsageAfterGc", POOL, "value", "used");
+    long before = (long) get(gcInfo, "memoryUsageBeforeGc", POOL, "used");
+    long after = (long) get(gcInfo, "memoryUsageAfterGc", POOL, "used");
     lastSeen = id;
     return before - after;
   }
@@ -183,6 +183,8 @@ class EdenMonitor implements Closeable, NotificationListener {
           try {
             Method method = result.getClass().getMethod("get", Object[].class);
             result = method.invoke(result, (Object) new Object[] { key });
+            method = result.getClass().getMethod("get", String.class);
+            result = method.invoke(result, "value");
           } catch (NoSuchMethodException e2) {
             String getterName = "get" + key.substring(0, 1).toUpperCase() + key.substring(1);
             Method method = result.getClass().getMethod(getterName);
