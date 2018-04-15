@@ -2,10 +2,13 @@ package org.alicep.benchmark;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.management.ManagementFactory.getGarbageCollectorMXBeans;
+import static java.lang.management.ManagementFactory.getMemoryPoolMXBeans;
 import static java.util.Arrays.stream;
 
 import java.io.Closeable;
 import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.MemoryPoolMXBean;
+import java.lang.management.MemoryUsage;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -22,6 +25,11 @@ import javax.management.NotificationListener;
 
 class EdenMonitor implements Closeable, NotificationListener {
 
+  /**
+   * The size of a {@link MemoryUsage} instance.
+   */
+  public static int EDEN_USED_OVERHEAD_BYTES = 16 + 4 * Long.BYTES;
+
   private static final String POOL = "PS Eden Space";
 
   public static EdenMonitor create() throws InterruptedException {
@@ -31,33 +39,55 @@ class EdenMonitor implements Closeable, NotificationListener {
         .findFirst()
         .orElseThrow(() -> new IllegalStateException("ParallelSweep GC not enabled"));
     checkState(Arrays.asList(scavengeBean.getMemoryPoolNames()).contains(POOL), "Eden pool not found");
-    EdenMonitor monitor = new EdenMonitor(scavengeBean);
+    MemoryPoolMXBean edenPool = getMemoryPoolMXBeans()
+        .stream()
+        .filter(bean -> bean.getName().equals(POOL))
+        .findFirst()
+        .orElseThrow(() -> new IllegalStateException("Eden pool not found"));
+    EdenMonitor monitor = new EdenMonitor(scavengeBean, edenPool);
     monitor.listener = addNotificationListener(scavengeBean, monitor::notify);
-    monitor.reset();
+    monitor.clear();
     return monitor;
   }
 
   private final GarbageCollectorMXBean scavengeBean;
+  private final MemoryPoolMXBean edenPool;
   private final BlockingQueue<Object> notifications = new LinkedBlockingDeque<>();
+  private long freed = 0;
   private Object listener;
   private long lastSeen;
 
-  private EdenMonitor(GarbageCollectorMXBean scavengeBean) {
+  private EdenMonitor(GarbageCollectorMXBean scavengeBean, MemoryPoolMXBean edenPool) {
     this.scavengeBean = scavengeBean;
+    this.edenPool = edenPool;
     this.lastSeen = scavengeBean.getCollectionCount();
   }
 
-  public void reset() throws InterruptedException {
+  /**
+   * Runs the garbage collector and resets metrics.
+   */
+  public void clear() throws InterruptedException {
     System.gc();
-    while (hasNext()) {
-      nextFreed();
-    }
+    freed();
+    freed = 0;
+    scavengeBean.getCollectionCount();
   }
 
-  public long freed() throws InterruptedException {
-    System.gc();
-    long freed = 0;
-    while (hasNext()) {
+  /**
+   * Returns the amount of stack used since construction, or the last call to {@link #reset()}.
+   *
+   * <p>Each call to {@code used} consumes {@link #EDEN_USED_OVERHEAD_BYTES} bytes.
+   */
+  public long used() throws InterruptedException {
+    return freed() + edenPool.getUsage().getUsed();
+  }
+
+  /**
+   * Returns the amount of Eden space memory freed since construction, or the last call to {@link #clear()}.
+   */
+  private long freed() throws InterruptedException {
+    long collectionCount = scavengeBean.getCollectionCount();
+    while (lastSeen != collectionCount) {
       freed += nextFreed();
     }
     return freed;
@@ -74,10 +104,6 @@ class EdenMonitor implements Closeable, NotificationListener {
 
   private void notify(Object notification) {
     notifications.add(notification);
-  }
-
-  private boolean hasNext() {
-    return lastSeen != scavengeBean.getCollectionCount();
   }
 
   private long nextFreed() throws InterruptedException {
