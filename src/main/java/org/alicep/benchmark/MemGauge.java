@@ -18,7 +18,7 @@ public class MemGauge {
   /**
    * Returns the memory allocated on the stack by {@code command}.
    *
-   * <p>Accurate to the byte for smaller (< 5KB) values.
+   * <p>Accurate to the byte for smaller (&lt; 5KB) values.
    *
    * @param <E> checked exception thrown by command (RuntimeException if command is unchecked)
    * @param command command to run; should return any final result so HotSpot cannot optimize away any allocations
