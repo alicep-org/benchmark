@@ -61,16 +61,16 @@ Running this benchmark will produce output like the following:
 ```
 Create a list of strings
 ------------------------
-2: 24.1 ns (±1.54 ns), 57B
+2: 24.1 ns (±1.54 ns), 56B
   * 18 PS Scavenge collections over 20.0 ns
-3: 27.9 ns (±1.46 ns), 58B
+3: 27.9 ns (±1.46 ns), 56B
   * 15 PS Scavenge collections over 14.0 ns
-10: 56.4 ns (±4.23 ns), 59B
+10: 56.4 ns (±4.23 ns), 56B
   * 28 PS Scavenge collections over 26.0 ns
-100: 567 ns (±36.9 ns), 1.44kB
+100: 567 ns (±36.9 ns), 1.38kB
   * 32 PS Scavenge collections over 32.0 ns</pre>
 ```
 
 The range shows the variation in timings encountered when running the test; the sample error of the mean will be around 1% to 99% confidence, for this particular JIT run and background machine load.
 
-Note that memory sizes are approximate. For byte-precision memory usage figures, see above.
+Memory usage is calculated using the same method as `MemoryAssertions`, above.

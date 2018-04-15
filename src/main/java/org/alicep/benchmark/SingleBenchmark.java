@@ -97,16 +97,15 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
       // Elapsed time (total time / iterations) for each timed iteration
       double[] timings = new double[50];
 
+      // Memory allocated per iteration
+      long[] allocated = new long[50];
+
       // Elapsed time statistic sources
       double tS = 0.0;
       double tSS = 0.0;
       double id = 0.0;
       double ewma = 0.0;
       double ewmas = 0.0;
-
-      // Memory usage across all timed iterations
-      long usageBeforeRun = 0;
-      long usageAfterRun;
 
       // Monitor the JVM for suspicious activity
       ManagementMonitor monitor = new ManagementMonitor();
@@ -119,12 +118,11 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
 
       long startTimeNanos = System.nanoTime();
 
-      MemoryAllocationMonitor memoryAllocationMonitor = MemoryAllocationMonitor.get();
+      EdenMonitor allocationMonitor = EdenMonitor.create();
 
       do {
         if (memorySamples == 0) {
-          memoryAllocationMonitor.prepareForBenchmark();
-          usageBeforeRun = memoryAllocationMonitor.memoryUsed();
+          System.gc();
           monitor.start();
         }
         if (timingSamples == 0) {
@@ -133,11 +131,17 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
         }
 
         long elapsed = hotLoop.applyAsLong(hotLoopIterations);
+        long totalAllocated = allocationMonitor.sample();
+        if (allocated.length == memorySamples) {
+          allocated = Arrays.copyOf(allocated, allocated.length * 2);
+        }
+        allocated[memorySamples++] = Math.round((double) totalAllocated / hotLoopIterations / 8) * 8;
+
         if (elapsed < minSampleNanos) {
           // Restart if the hot loop did not take enough time running
           hotLoopIterations = hotLoopIterations + (hotLoopIterations >> 1) + 1;
           timingSamples = -1;
-          memorySamples = -1;
+          memorySamples = 0;
         } else {
           // Record elapsed time if we're in the timing loop
           if (timings.length == timingSamples) {
@@ -187,19 +191,15 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
           boolean enoughTotalTime = (System.nanoTime() - startTimeNanos) >= minBenchmarkNanos;
           if (enoughSamples && enoughTotalTime && lowSampleError) {
             monitor.stop();
-            usageAfterRun = memoryAllocationMonitor.memoryUsed();
             timingSamples++;
             break;
           }
         }
 
         timingSamples++;
-        memorySamples++;
       } while (true);
 
-      double memoryUsage = (double)
-          (usageAfterRun - usageBeforeRun - memoryAllocationMonitor.approximateBaselineError()) / hotLoopIterations;
-      summarize(tS, tSS, timingSamples, memoryUsage, memorySamples, monitor);
+      summarize(tS, tSS, timingSamples, allocated, memorySamples, monitor);
       notifier.fireTestFinished(description);
     } catch (Throwable t) {
       if (t.getClass().getName().equals(AssumptionViolatedException.class.getName())) {
@@ -252,11 +252,11 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
       double tS,
       double tSS,
       int iterations,
-      double memoryUsage,
+      long[] allocated,
       int memorySamples,
       ManagementMonitor monitor) {
     String timeSummary = summarizeTime(tS, tSS, iterations);
-    String memorySummary = summarizeMemory(memoryUsage, memorySamples);
+    String memorySummary = summarizeMemory(Arrays.copyOf(allocated, memorySamples));
     System.out.println(timeSummary + ", " + memorySummary);
     monitor.printIfChanged(System.out);
   }
@@ -269,8 +269,17 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
     return timeSummary;
   }
 
-  private static String summarizeMemory(double memoryUsage, int memorySamples) {
-    return bytes((long) memoryUsage/memorySamples).toString();
+  private static String summarizeMemory(long[] allocated) {
+    Arrays.sort(allocated);
+    long median = allocated[allocated.length / 2];
+    long q1 = allocated[allocated.length / 4];
+    long q3 = allocated[allocated.length - allocated.length / 4];
+    long errorMargin = Math.max(q1 - median, q3 - median);
+    if (errorMargin == 0) {
+      return bytes(median).toString();
+    } else {
+      return bytes(median) + " (±" + bytes(errorMargin) + ")";
+    }
   }
 
   public Object config() {
