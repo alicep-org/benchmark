@@ -179,6 +179,14 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
                 timingSamples--;
               }
             }
+            id = 0.0;
+            ewma = 0.0;
+            ewmas = 0.0;
+            for (int i = 0; i < timingSamples; ++i) {
+              id = updateEwmav(id, 1.0);
+              ewma = updateEwmav(ewma, timings[i]);
+              ewmas = updateEwmav(ewmas, timings[i] * timings[i]);
+            }
           }
 
           // Calculate ongoing sample error
