@@ -28,7 +28,7 @@ class EdenMonitor implements Closeable, NotificationListener {
   /**
    * The size of a {@link MemoryUsage} instance.
    */
-  public static int EDEN_USED_OVERHEAD_BYTES = 16 + 4 * Long.BYTES;
+  public static int SAMPLE_ERROR_BYTES = 16 + 4 * Long.BYTES;
 
   private static final String POOL = "PS Eden Space";
 
@@ -45,52 +45,44 @@ class EdenMonitor implements Closeable, NotificationListener {
         .findFirst()
         .orElseThrow(() -> new IllegalStateException("Eden pool not found"));
     EdenMonitor monitor = new EdenMonitor(scavengeBean, edenPool);
-    monitor.listener = addNotificationListener(scavengeBean, monitor::notify);
-    monitor.clear();
+    monitor.listener = addNotificationListener(scavengeBean, monitor::addNotification);
+    monitor.sample();
     return monitor;
   }
 
   private final GarbageCollectorMXBean scavengeBean;
   private final MemoryPoolMXBean edenPool;
   private final BlockingQueue<Object> notifications = new LinkedBlockingDeque<>();
-  private long freed = 0;
   private Object listener;
-  private long lastSeen;
+  private long lastCollection;
+  private long lastUsed;
 
   private EdenMonitor(GarbageCollectorMXBean scavengeBean, MemoryPoolMXBean edenPool) {
     this.scavengeBean = scavengeBean;
     this.edenPool = edenPool;
-    this.lastSeen = scavengeBean.getCollectionCount();
+    this.lastCollection = scavengeBean.getCollectionCount();
   }
 
   /**
-   * Runs the garbage collector and resets metrics.
-   */
-  public void clear() throws InterruptedException {
-    System.gc();
-    freed();
-    freed = 0;
-    scavengeBean.getCollectionCount();
-  }
-
-  /**
-   * Returns the amount of stack used since construction, or the last call to {@link #reset()}.
+   * Returns the amount of stack used since construction, or the last call to {@link #sample()}.
    *
-   * <p>Each call to {@code used} consumes {@link #EDEN_USED_OVERHEAD_BYTES} bytes.
+   * <p>Only accurate to within {@link #SAMPLE_ERROR_BYTES} at the best of times.
    */
-  public long used() throws InterruptedException {
-    return freed() + edenPool.getUsage().getUsed();
-  }
+  public long sample() throws InterruptedException {
+    long firstUsed = edenPool.getUsage().getUsed();
+    int numUsageCalls = 1;
+    long finalUsed;
 
-  /**
-   * Returns the amount of Eden space memory freed since construction, or the last call to {@link #clear()}.
-   */
-  private long freed() throws InterruptedException {
-    long collectionCount = scavengeBean.getCollectionCount();
-    while (lastSeen != collectionCount) {
-      freed += nextFreed();
-    }
-    return freed;
+    // Keep calling getUsage() until it changes value, indicating we have completely consumed a page.
+    do {
+      finalUsed = edenPool.getUsage().getUsed();
+      numUsageCalls++;
+    } while (finalUsed == firstUsed);
+    long reclaimed = reclaimed();
+
+    long sample = reclaimed + finalUsed - lastUsed - SAMPLE_ERROR_BYTES * numUsageCalls - 16;
+    lastUsed = finalUsed;
+    return sample;
   }
 
   @Override
@@ -102,7 +94,19 @@ class EdenMonitor implements Closeable, NotificationListener {
     }
   }
 
-  private void notify(Object notification) {
+  /**
+   * Returns the amount of Eden space memory reclaimed since construction, or the last call to {@link #clear()}.
+   */
+  private long reclaimed() throws InterruptedException {
+    long collectionCount = scavengeBean.getCollectionCount();
+    long totalReclaimed = 0;
+    while (lastCollection != collectionCount) {
+      totalReclaimed += nextFreed();
+    }
+    return totalReclaimed;
+  }
+
+  private void addNotification(Object notification) {
     notifications.add(notification);
   }
 
@@ -119,7 +123,7 @@ class EdenMonitor implements Closeable, NotificationListener {
     long id = (long) get(gcInfo, "id");
     long before = (long) get(gcInfo, "memoryUsageBeforeGc", POOL, "used");
     long after = (long) get(gcInfo, "memoryUsageAfterGc", POOL, "used");
-    lastSeen = id;
+    lastCollection = id;
     return before - after;
   }
 

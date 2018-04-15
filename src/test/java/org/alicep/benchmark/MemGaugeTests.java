@@ -68,7 +68,7 @@ public class MemGaugeTests {
 
   @Test
   public void edenUsedOverheadBytes_correct() {
-    assertEquals(bytes(EdenMonitor.EDEN_USED_OVERHEAD_BYTES), objectSize(() -> new MemoryUsage(0, 0, 0, 0)));
+    assertEquals(bytes(EdenMonitor.SAMPLE_ERROR_BYTES), objectSize(() -> new MemoryUsage(0, 0, 0, 0)));
   }
 
   @Test

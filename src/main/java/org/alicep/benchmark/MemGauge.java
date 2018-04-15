@@ -2,7 +2,6 @@ package org.alicep.benchmark;
 
 import static java.util.Arrays.sort;
 import static org.alicep.benchmark.Bytes.bytes;
-import static org.alicep.benchmark.EdenMonitor.EDEN_USED_OVERHEAD_BYTES;
 
 import java.util.Arrays;
 import java.util.function.Supplier;
@@ -31,34 +30,22 @@ public class MemGauge {
       Bytes memoryConsumption(CheckedRunnable<E> command) throws E, InterruptedException {
     long[] estimates = new long[5];
     try (EdenMonitor monitor = EdenMonitor.create()) {
+      System.gc();
+      monitor.sample();
+
       // Java rounds all allocations to a multiple of Long.BYTES
       // Our measurements are rounded up to a multiple PENDING_OVERHEAD_BYTES
       // So repeat command a few times to get byte-level accuracy
-      int repeats = EDEN_USED_OVERHEAD_BYTES / Long.BYTES;
+      int repeats = EdenMonitor.SAMPLE_ERROR_BYTES / Long.BYTES;
 
-      long initialUsed = monitor.used();
       for (int i = 0; i < estimates.length; i++) {
         for (int j = 0; j < repeats; ++j) {
           sink = command.run();
           sink = null;
         }
-        long k = monitor.used();
-        int numPendingCalls = 1;
-        long finalUsed;
-
-        // Keep calling used() until it ticks up, indicating we have completely consumed a page.
-        do {
-          finalUsed = monitor.used();
-          numPendingCalls++;
-        } while (finalUsed == k);
-
-        // Calculate how much memory we consumed calling used()
-        long overheadFromCallingUsed = EDEN_USED_OVERHEAD_BYTES * numPendingCalls;
 
         // Estimate how much memory command consumed
-        estimates[i] = ((finalUsed - initialUsed - overheadFromCallingUsed - 16) / repeats) & ~7L;
-
-        initialUsed = finalUsed;
+        estimates[i] = (monitor.sample() / repeats) & ~7L;
 
         // If the data looks sketchy, take more samples
         if (i == 4) {
@@ -66,8 +53,7 @@ public class MemGauge {
           if ((estimates[0] != estimates[1] && estimates[1] != estimates[2]) || estimates[1] < 0) {
             estimates = Arrays.copyOf(estimates, 25);
             System.gc();
-            monitor.clear();
-            initialUsed = monitor.used();
+            monitor.sample();
           }
         }
       }
