@@ -126,34 +126,34 @@ public class MemGauge {
 
       // If the majority of differences are the same, return that
       if (differences.length > 30) {
-          for (int i = 0; i < differences.length; ++i) {
-              differences[i] = with[i] - without[i];
+        for (int i = 0; i < differences.length; ++i) {
+          differences[i] = with[i] - without[i];
+        }
+        sort(differences);
+        for (long i = 0, last = 0, count = 0; i < differences.length; ++i) {
+          if (differences[(int) i] == last) {
+            count++;
+            if (count >= differences.length / 2) {
+              return bytes(last);
+            }
+          } else {
+            last = differences[(int) i];
+            count = 1;
           }
-          sort(differences);
-          for (long i = 0, last = 0, count = 0; i < differences.length; ++i) {
-              if (differences[(int) i] == last) {
-                  count++;
-                  if (count >= differences.length / 2) {
-                      return bytes(last);
-                  }
-              } else {
-                  last = differences[(int) i];
-                  count = 1;
-              }
-          }
+        }
       }
 
       if (tail % 100 == 3) {
-          System.out.println("Number without after " + tail + " iterations:");
-          System.out.println(Arrays.toString(without));
-          System.out.println();
-          System.out.println("Number with after " + tail + " iterations:");
-          System.out.println(Arrays.toString(with));
-          System.out.println();
+        System.out.println("Number without after " + tail + " iterations:");
+        System.out.println(Arrays.toString(without));
+        System.out.println();
+        System.out.println("Number with after " + tail + " iterations:");
+        System.out.println(Arrays.toString(with));
+        System.out.println();
       }
       if (tail >= 1000) {
-          throw new AssertionError("Did not stabilize after 1k iterations:\n"
-                  + Arrays.toString(with) + "\n" + Arrays.toString(without));
+        throw new AssertionError("Did not stabilize after 1k iterations:\n"
+            + Arrays.toString(with) + "\n" + Arrays.toString(without));
       }
       head = tail;
       tail = tail + 4;
