@@ -7,23 +7,20 @@ Benchmark your code to nanosecond and byte precision with ease.
 
 ## Byte-precision memory usage
 
-`MemoryAssertions` provides a fluent API for testing how much memory a method allocates, to byte precision for small (<1KB) sizes, by watching Eden space usage during multiple executions.
+`MemoryAssertions` provides a fluent API for testing how much memory a method allocates or returns, to byte precision for small (<1KB) sizes, by watching Eden space usage or Old Gen space during multiple executions.
 
 ```
 assertThatRunning(() -> null).makesNoStackAllocations();
 assertThatRunning(() -> new byte[5]).allocates(bytes(24));
+assertThatRunning(() -> Arrays.copyOf(new long[15], 20)
+    .returnsObjectConsuming(bytes(16 + Long.BYTES * 20)));
 ```
 
-`MemGauge.objectSize` lets you determine the memory consumed by an object or collection of objects to byte precision in a fraction of a second, by watching Old Gen space usage during multiple reclamations.
+`MemGauge` gives direct access to the memory calculation algorithms used by `MemoryAssertions`:
 
 ```
 // Round up to a multiple of 4 and add 16 bits of header (object header + size)
 assertEquals(bytes(24), objectSize(() -> new byte[5]));
-```
-
-`MemGauge.memoryConsumption` gives direct access to the memory consumption calculator of `MemoryAssertions`:
-
-```
 // Allocates two byte[5]
 assertEquals(bytes(48), memoryConsumption(() -> {
   byte[] bytes = new byte[5];

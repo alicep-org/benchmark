@@ -18,14 +18,14 @@ public class MemGauge {
    *
    * <p>Accurate to the byte for smaller (&lt; 5KB) values.
    *
-   * @param <E> checked exception thrown by command (RuntimeException if command is unchecked)
+   * @param <E> checked exception thrown by command (defaults to RuntimeException if command is unchecked)
    * @param command command to run; should return any final result so HotSpot cannot optimize away any allocations
    * @return allocated memory in bytes
    *
    * @throws InterruptedException if interrupted
    * @throws E if {@code command} throws E
    */
-  public static <E extends Exception>
+  public static <E extends Throwable>
       Bytes memoryConsumption(CheckedRunnable<E> command) throws E, InterruptedException {
     long[] estimates = new long[5];
     try (EdenMonitor monitor = EdenMonitor.create()) {
@@ -83,13 +83,14 @@ public class MemGauge {
    *
    * <pre>assertEquals(bytes(24), objectSize(Long::new));</pre>
    *
+   * @param <E> checked exception thrown by command (defaults to RuntimeException if command is unchecked)
    * @param factory Provider of instances to measure
    * @return memory usage in bytes
    *
    * @throws InterruptedException if interrupted
    * @throws E if {@code factory} throws E
    */
-  public static <E extends Exception> Bytes objectSize(CheckedRunnable<E> factory) throws E, InterruptedException {
+  public static <E extends Throwable> Bytes objectSize(CheckedRunnable<E> factory) throws E, InterruptedException {
     try (ReclamationsQueue reclamations = ReclamationsQueue.create("PS MarkSweep", "PS Old Gen")) {
 
       int head = 0;

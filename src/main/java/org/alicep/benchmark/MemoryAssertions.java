@@ -9,14 +9,15 @@ import java.util.stream.LongStream;
 public class MemoryAssertions {
 
   /**
-   * Fluent API for asserting how much memory is allocated by {@code runnable}.
+   * Fluent API for asserting how much memory is allocated or returned by {@code runnable}.
    *
-   * <p>Successful tests will typically execute {@code runnable} 31 times, though extreme flakiness may trigger further
-   * runs. Unsuccessful tests will run around twelve hundred times and include a recommendation for a non-flaky
-   * assertion that could be used in future.
+   * <p>Successful allocation tests will typically execute {@code runnable} 31 times, though extreme flakiness may
+   * trigger further runs. To avoid flakiness, tests will only fail if 5 samples (each averaging 6 executions) all fail
+   * the input assertion. Unsuccessful tests will run around twelve hundred times and include a recommendation for a
+   * non-flaky assertion that could be used in future.
    *
-   * <p>To avoid flakiness, tests will only fail if 5 samples (each averaging 6 executions) all fail the input
-   * assertion.
+   * <p>The number of times a return size test takes depends on any background tasks running on the JVM, but is
+   * typically 8–16 runs. If no result is determined after 1024 iterations, the assertion will fail.
    *
    * @param runnable the method to test
    * @return fluent API instance
@@ -34,9 +35,15 @@ public class MemoryAssertions {
   private final ThrowingRunnable runnable;
   private long[] allocations = new long[5];
   private int runs = 0;
+  private String description = null;
 
   private MemoryAssertions(ThrowingRunnable runnable) {
     this.runnable = runnable;
+  }
+
+  public MemoryAssertions describedAs(String description) {
+    this.description = description;
+    return this;
   }
 
   /**
@@ -55,7 +62,11 @@ public class MemoryAssertions {
       sample();
     }
     if (allocations.length == 200 && allocations[160] != 0) {
-      StringBuilder message = new StringBuilder("Expected no stack allocations");
+      StringBuilder message = new StringBuilder();
+      if (description != null) {
+        message.append(description).append(": ");
+      }
+      message.append("expected no stack allocations");
       suggestCheck(message);
       throw new AssertionError(message);
     }
@@ -79,7 +90,11 @@ public class MemoryAssertions {
       sample();
     }
     if (allocations.length == 200 && !(matches(allocations[40], bytes) && matches(allocations[160], bytes))) {
-      StringBuilder message = new StringBuilder("Expected ").append(bytes).append(" to be allocated");
+      StringBuilder message = new StringBuilder();
+      if (description != null) {
+        message.append(description).append(": ");
+      }
+      message.append("expected ").append(bytes).append(" to be allocated");
       suggestCheck(message);
       throw new AssertionError(message);
     }
@@ -103,7 +118,11 @@ public class MemoryAssertions {
       sample();
     }
     if (allocations.length == 200 && !atMost(allocations[160], bytes)) {
-      StringBuilder message = new StringBuilder("Expected at most ").append(bytes).append(" to be allocated");
+      StringBuilder message = new StringBuilder();
+      if (description != null) {
+        message.append(description).append(": ");
+      }
+      message.append("expected at most ").append(bytes).append(" to be allocated");
       suggestCheck(message);
       throw new AssertionError(message);
     }
@@ -128,12 +147,40 @@ public class MemoryAssertions {
       sample();
     }
     if (allocations.length == 200 && !(atLeast(allocations[40], minBytes) && atMost(allocations[160], maxBytes))) {
-      StringBuilder message = new StringBuilder("Expected ").append(minBytes).append("–").append(maxBytes)
-          .append(" to be allocated");
+      StringBuilder message = new StringBuilder();
+      if (description != null) {
+        message.append(description).append(": ");
+      }
+      message.append("expected ").append(minBytes).append("–").append(maxBytes) .append(" to be allocated");
       suggestCheck(message);
       throw new AssertionError(message);
     }
     return this;
+  }
+
+  /**
+   * Assert the object returned by the runnable consumes {@code residentBytes} on the stack, including any nested
+   * objects.
+   *
+   * @param residentBytes the number of bytes the result is expected to return to the JVM when no longer referenced
+   * @return this fluent API instance
+   */
+  public MemoryAssertions returnsObjectConsuming(Bytes residentBytes) {
+    try {
+      Bytes actual = MemGauge.objectSize(runnable::run);
+      if (!matches(actual.asLong(), residentBytes)) {
+        throw new AssertionError((description == null ? "resident memory of returned object" : description)
+            + ": expected " + residentBytes + " but was " + actual);
+      }
+      return this;
+    } catch (RuntimeException | Error e) {
+      throw e;
+    } catch (Throwable e) {
+      if (e instanceof InterruptedException || e instanceof InterruptedIOException) {
+        Thread.currentThread().interrupt();
+      }
+      throw new AssertionError(e);
+    }
   }
 
   private static boolean matches(long bytes, Bytes expected) {
