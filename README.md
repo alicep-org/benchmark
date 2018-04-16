@@ -14,7 +14,7 @@ assertThatRunning(() -> null).makesNoStackAllocations();
 assertThatRunning(() -> new byte[5]).allocates(bytes(24));
 ```
 
-`MemGauge.objectSize` lets you determine the memory consumed by an object or collection of objects to byte precision in a fraction of a second. By triggering repeated GC cycles and watching the notifications, with a few tricks to overcome the JVM's intransigence, you can not only discover but unit test your memory usage.
+`MemGauge.objectSize` lets you determine the memory consumed by an object or collection of objects to byte precision in a fraction of a second, by watching Old Gen space usage during multiple reclamations.
 
 ```
 // Round up to a multiple of 4 and add 16 bits of header (object header + size)

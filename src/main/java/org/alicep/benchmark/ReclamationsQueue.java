@@ -75,6 +75,28 @@ class ReclamationsQueue implements Closeable {
     return getFreedMemory(notification, pool);
   }
 
+  /**
+   * Returns the amount of memory reclaimed by the most recent collection.
+   *
+   * @throws IllegalStateException if no collection occurred since the last one dequeued
+   * @throws AssertionError if the internal listener is not reporting back collection results in a timely manner
+   */
+  public long lastReclaimed() throws InterruptedException {
+    long collection = collectorBean.getCollectionCount();
+    checkState(lastCollection != collection);
+    Object notification;
+    do {
+      do {
+        notification = notifications.poll(2, TimeUnit.SECONDS);
+        if (notification == null) {
+          throw new AssertionError("BlockingCollectionQueue listener not responding");
+        }
+      } while (!isCollectionNotification(notification));
+      lastCollection = getCollectionId(notification);
+    } while (lastCollection != collection);
+    return getFreedMemory(notification, pool);
+  }
+
   @Override
   public void close() {
     try {

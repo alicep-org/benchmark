@@ -3,23 +3,30 @@ package org.alicep.benchmark;
 import static org.alicep.benchmark.Bytes.bytes;
 import static org.alicep.benchmark.MemGauge.memoryConsumption;
 import static org.alicep.benchmark.MemGauge.objectSize;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.lang.management.MemoryUsage;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
 public class MemGaugeTests {
 
   @Test
-  public void objectSize_object() {
+  public void objectSize_null() throws InterruptedException {
+    assertEquals(bytes(0), objectSize(() -> null));
+  }
+
+  @Test
+  public void objectSize_object() throws InterruptedException {
     assertEquals(bytes(allocation(0)), objectSize(() -> new Object()));
   }
 
   @Test
-  public void objectSize_objectArray() {
+  public void objectSize_objectArray() throws InterruptedException {
     for (int i = 0; i < 9; ++i) {
       int size = i;
       assertEquals("new Object[" + i + "]",
@@ -29,7 +36,7 @@ public class MemGaugeTests {
   }
 
   @Test
-  public void objectSize_2dObjectArray() {
+  public void objectSize_2dObjectArray() throws InterruptedException {
     for (int i = 0; i < 3; ++i) {
       for (int j = 0; j < 3; ++j) {
         int width = i;
@@ -42,12 +49,12 @@ public class MemGaugeTests {
   }
 
   @Test
-  public void objectSize_long() {
+  public void objectSize_long() throws InterruptedException {
     assertEquals(bytes(allocation(Long.BYTES)), objectSize(() -> new Long(10000)));
   }
 
   @Test
-  public void objectSize_string() {
+  public void objectSize_string() throws InterruptedException {
     for (int i = 2; i < 10; ++i) {
       int size = i;
       assertEquals(i + "-character String",
@@ -57,7 +64,7 @@ public class MemGaugeTests {
   }
 
   @Test
-  public void objectSize_byteArray() {
+  public void objectSize_byteArray() throws InterruptedException {
     for (int i = 0; i < 19; ++i) {
       int size = i;
       assertEquals("new byte[" + i + "]",
@@ -67,7 +74,20 @@ public class MemGaugeTests {
   }
 
   @Test
-  public void edenUsedOverheadBytes_correct() {
+  public void objectSize_reportsResidentNotAllocatedMemory() throws InterruptedException {
+    assertEquals("allocateByteArrays(32)", bytes(allocation(5)), objectSize(() -> allocateByteArrays(32)));
+  }
+
+  @Test
+  public void objectSize_throwsIfResidentMemoryChanges() {
+    AtomicInteger size = new AtomicInteger();
+    assertThatExceptionOfType(AssertionError.class)
+        .isThrownBy(() -> objectSize(() -> new long[size.getAndIncrement()]))
+        .withMessageStartingWith("Did not stabilize after 1k iterations");
+  }
+
+  @Test
+  public void edenUsedOverheadBytes_correct() throws InterruptedException {
     assertEquals(bytes(EdenMonitor.SAMPLE_ERROR_BYTES), objectSize(() -> new MemoryUsage(0, 0, 0, 0)));
   }
 
