@@ -1,10 +1,12 @@
 package org.alicep.benchmark;
 
+import static java.lang.management.ManagementFactory.getGarbageCollectorMXBeans;
 import static java.lang.management.ManagementFactory.getMemoryPoolMXBeans;
 
 import java.io.Closeable;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
+import java.util.Arrays;
 
 class EdenMonitor implements Closeable {
 
@@ -15,6 +17,15 @@ class EdenMonitor implements Closeable {
 
   private static final String COLLECTOR = "PS Scavenge";
   private static final String POOL = "PS Eden Space";
+
+  public static boolean isAvailable() {
+    return getGarbageCollectorMXBeans()
+        .stream()
+        .filter(bean -> bean.getName().equals(COLLECTOR))
+        .findFirst()
+        .map(collector -> Arrays.asList(collector.getMemoryPoolNames()).contains(POOL))
+        .orElse(false);
+  }
 
   public static EdenMonitor create() throws InterruptedException {
     ReclamationsQueue reclamations = ReclamationsQueue.create(COLLECTOR, POOL);

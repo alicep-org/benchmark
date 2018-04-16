@@ -72,7 +72,7 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
 
     ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
 
-    try {
+    try (EdenMonitor allocationMonitor = EdenMonitor.isAvailable() ? EdenMonitor.create() : null) {
       // The hot loop we are timing
       LongUnaryOperator hotLoop = hotLoopFactory.get();
       Thread.currentThread().setContextClassLoader(hotLoop.getClass().getClassLoader());
@@ -98,7 +98,7 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
       double[] timings = new double[50];
 
       // Memory allocated per iteration
-      long[] allocated = new long[50];
+      long[] allocated = allocationMonitor == null ? null : new long[50];
 
       // Elapsed time statistic sources
       double tS = 0.0;
@@ -118,8 +118,6 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
 
       long startTimeNanos = System.nanoTime();
 
-      EdenMonitor allocationMonitor = EdenMonitor.create();
-
       do {
         if (memorySamples == 0) {
           System.gc();
@@ -131,11 +129,13 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
         }
 
         long elapsed = hotLoop.applyAsLong(hotLoopIterations);
-        long totalAllocated = allocationMonitor.sample();
-        if (allocated.length == memorySamples) {
-          allocated = Arrays.copyOf(allocated, allocated.length * 2);
+        if (allocationMonitor != null) {
+          long totalAllocated = allocationMonitor == null ? 0 : allocationMonitor.sample();
+          if (allocated.length == memorySamples) {
+            allocated = Arrays.copyOf(allocated, allocated.length * 2);
+          }
+          allocated[memorySamples++] = Math.round((double) totalAllocated / hotLoopIterations / 8) * 8;
         }
-        allocated[memorySamples++] = Math.round((double) totalAllocated / hotLoopIterations / 8) * 8;
 
         if (elapsed < minSampleNanos) {
           // Restart if the hot loop did not take enough time running
@@ -263,9 +263,11 @@ class SingleBenchmark extends Runner implements Comparable<SingleBenchmark> {
       long[] allocated,
       int memorySamples,
       ManagementMonitor monitor) {
-    String timeSummary = summarizeTime(tS, tSS, iterations);
-    String memorySummary = summarizeMemory(Arrays.copyOf(allocated, memorySamples));
-    System.out.println(timeSummary + ", " + memorySummary);
+    System.out.print(summarizeTime(tS, tSS, iterations));
+    if (allocated != null) {
+      System.out.print(summarizeMemory(Arrays.copyOf(allocated, memorySamples)));
+    }
+    System.out.println();
     monitor.printIfChanged(System.out);
   }
 

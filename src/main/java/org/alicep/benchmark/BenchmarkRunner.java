@@ -270,7 +270,9 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
         System.out.println(" ** " + interferenceWarning.value() + " **");
         System.out.println("    Run in isolation for trustworthy results");
       }
-      MemoryAllocationMonitor.get().warnIfMonitoringDisabled();
+      if (!EdenMonitor.isAvailable()) {
+        System.out.println("[WARN] Not using Parallel Sweep GC; memory allocation information will not be available");
+      }
       super.run(notifier);
       System.out.println();
     }
