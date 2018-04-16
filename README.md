@@ -5,14 +5,25 @@ Benchmark your code to nanosecond and byte precision with ease.
 [![Build Status](https://travis-ci.org/alicep-org/benchmark.svg?branch=master)](https://travis-ci.org/alicep-org/benchmark)
 [![Download](https://api.bintray.com/packages/alicep-org/maven/benchmark/images/download.svg)](https://bintray.com/alicep-org/maven/benchmark/_latestVersion)
 
-## Memory usage
+## Byte-precision memory usage
 
-`MemGauge.objectSize` lets you determine the memory consumed by an object or collection of objects to byte precision in a fraction of a second; `MemGauge.memoryConsumption` determines the total memory allocated on the heap by a method to within 1%. By triggering repeated GC cycles and watching the notifications, with a few tricks to overcome the JVM's intransigence, you can not only discover but unit test your memory usage.
+`MemoryAssertions` provides a fluent API for testing how much memory a method allocates, to byte precision for small (<1KB) sizes, by watching Eden space usage during multiple executions.
+
+```
+assertThatRunning(() -> null).makesNoStackAllocations();
+assertThatRunning(() -> new byte[5]).allocates(bytes(24));
+```
+
+`MemGauge.objectSize` lets you determine the memory consumed by an object or collection of objects to byte precision in a fraction of a second. By triggering repeated GC cycles and watching the notifications, with a few tricks to overcome the JVM's intransigence, you can not only discover but unit test your memory usage.
 
 ```
 // Round up to a multiple of 4 and add 16 bits of header (object header + size)
 assertEquals(bytes(24), objectSize(() -> new byte[5]));
+```
 
+`MemGauge.memoryConsumption` gives direct access to the memory consumption calculator of `MemoryAssertions`:
+
+```
 // Allocates two byte[5]
 assertEquals(bytes(48), memoryConsumption(() -> {
   byte[] bytes = new byte[5];

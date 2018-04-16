@@ -19,6 +19,7 @@ dependencies {
   api junit
   compile byteBuddy
   compile guava
+  testCompile assertj
 }
 
 pom {
