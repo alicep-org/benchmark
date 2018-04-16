@@ -17,6 +17,9 @@ public class MemoryAssertions {
    *
    * <p>To avoid flakiness, tests will only fail if 5 samples (each averaging 6 executions) all fail the input
    * assertion.
+   *
+   * @param runnable the method to test
+   * @return fluent API instance
    */
   public static MemoryAssertions assertThatRunning(ThrowingRunnable runnable) {
     return new MemoryAssertions(runnable).runOnce();
@@ -38,6 +41,8 @@ public class MemoryAssertions {
 
   /**
    * Assert the runnable makes no stack allocations.
+   *
+   * @return this fluent API instance
    */
   public MemoryAssertions makesNoStackAllocations() {
     sample();
@@ -59,6 +64,9 @@ public class MemoryAssertions {
 
   /**
    * Assert the runnable allocates {@code bytes} (with a 1% margin of error).
+   *
+   * @param bytes the number of bytes the runnable is expected to allocate
+   * @return this fluent API instance
    */
   public MemoryAssertions allocates(Bytes bytes) {
     sample();
@@ -80,6 +88,9 @@ public class MemoryAssertions {
 
   /**
    * Assert the runnable allocates at most {@code bytes} (plus a 1% margin of error).
+   *
+   * @param bytes the maximum number of bytes the runnable is expected to allocate
+   * @return this fluent API instance
    */
   public MemoryAssertions allocatesAtMost(Bytes bytes) {
     sample();
@@ -101,6 +112,10 @@ public class MemoryAssertions {
 
   /**
    * Assert the runnable allocates between {@code minBytes} and {@code maxBytes} (with a 1% margin of error).
+   *
+   * @param minBytes the minimum number of bytes the runnable is expected to allocate
+   * @param maxBytes the maximum number of bytes the runnable is expected to allocate
+   * @return this fluent API instance
    */
   public MemoryAssertions allocatesBetween(Bytes minBytes, Bytes maxBytes) {
     sample();
