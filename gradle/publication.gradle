@@ -147,7 +147,7 @@ afterEvaluate {
             throw new IllegalStateException("version not specified")
           }
           def root = asNode()
-          root.appendNode('description', project.pom.project.description)
+          root.appendNode('description', project.pom.project.description ?: project.description)
           root.appendNode('name', project.pom.project.name)
           root.appendNode('url', project.pom.project.url)
           root.children().last() + project.pom.asClosure()

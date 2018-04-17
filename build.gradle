@@ -26,7 +26,7 @@ pom {
   project {
     groupId = 'org.alicep'
     artifactId = 'benchmark'
-    name = 'alicep.org - benchmark'
+    name = 'org.alicep.benchmark'
     description = 'Benchmark Utilities for Java'
     url = 'https://github.com/alicep-org/benchmark'
     license = apache2
