@@ -172,6 +172,7 @@ afterEvaluate {
         desc = "$project.archivesBaseName $project.version"
         released = new Date()
         vcsTag = System.env.TRAVIS_TAG
+        gpg.sign = true
       }
     }
   }
