@@ -19,7 +19,7 @@ assertThatRunning(() -> Arrays.copyOf(new long[15], 20)
 `MemGauge` gives direct access to the memory calculation algorithms used by `MemoryAssertions`:
 
 ```
-// Round up to a multiple of 4 and add 16 bits of header (object header + size)
+// Round up to a multiple of 8 and add 16 bits of object header
 assertEquals(bytes(24), objectSize(() -> new byte[5]));
 // Allocates two byte[5]
 assertEquals(bytes(48), memoryConsumption(() -> {
