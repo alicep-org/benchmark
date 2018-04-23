@@ -12,8 +12,8 @@ Benchmark your code to nanosecond and byte precision with ease, in JUnit, in you
 ```
 assertThatRunning(() -> null).makesNoStackAllocations();
 assertThatRunning(() -> new byte[5]).allocates(bytes(24));
-assertThatRunning(() -> Arrays.copyOf(new long[15], 20)
-    .returnsObjectConsuming(bytes(16 + Long.BYTES * 20)));
+assertThatRunning(() -> Arrays.copyOf(new long[15], 20))
+    .returnsObjectConsuming(bytes(16 + Long.BYTES * 20));
 ```
 
 `MemGauge` gives direct access to the memory calculation algorithms used by `MemoryAssertions`:
