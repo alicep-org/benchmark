@@ -20,9 +20,9 @@ assertThatRunning(() -> Arrays.copyOf(new long[15], 20)
 
 ```
 // Round up to a multiple of 8 and add 16 bits of object header
-assertEquals(bytes(24), objectSize(() -> new byte[5]));
+assertEquals(bytes(24), MemGauge.objectSize(() -> new byte[5]));
 // Allocates two byte[5]
-assertEquals(bytes(48), memoryConsumption(() -> {
+assertEquals(bytes(48), MemGauge.memoryConsumption(() -> {
   byte[] bytes = new byte[5];
   bytes[2] = 3;
   // Return the result to ensure HotSpot does not optimise away the allocations
