@@ -7,7 +7,7 @@ Benchmark your code to nanosecond and byte precision with ease, in JUnit, in you
 
 ## Byte-precision memory usage
 
-`MemoryAssertions` provides a fluent API for testing how much memory a method allocates or returns, to byte precision for small (<1KB) sizes, by watching Eden space usage or Old Gen space during multiple executions.
+`MemoryAssertions` provides a fluent API for testing how much memory a method allocates or returns, to byte precision for small (<1KB) sizes, by watching Eden or Old Gen space usage during multiple executions.
 
 ```
 assertThatRunning(() -> null).makesNoStackAllocations();
