@@ -76,7 +76,7 @@ Create a list of strings
 10: 56.4 ns (±4.23 ns), 56B
   * 28 PS Scavenge collections over 26.0 ns
 100: 567 ns (±36.9 ns), 1.38kB
-  * 32 PS Scavenge collections over 32.0 ns</pre>
+  * 32 PS Scavenge collections over 32.0 ns
 ```
 
 The range shows the variation in timings encountered when running the test; the sample error of the mean will be around 1% to 99% confidence, for this particular JIT run and background machine load.
