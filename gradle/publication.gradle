@@ -64,6 +64,7 @@ class PomConvention {
     def developer(Closure closure) {
       def data = new DeveloperData()
       closure.delegate = data
+      closure.resolveStrategy = Closure.DELEGATE_FIRST
       closure()
       developers.add(data)
     }
@@ -75,16 +76,19 @@ class PomConvention {
 
   def project(Closure closure) {
     closure.delegate = project
+    closure.resolveStrategy = Closure.DELEGATE_FIRST
     closure()
   }
 
   def scm(Closure closure) {
     closure.delegate = scm
+    closure.resolveStrategy = Closure.DELEGATE_FIRST
     closure()
   }
 
   def developers(Closure closure) {
     closure.delegate = developers
+    closure.resolveStrategy = Closure.DELEGATE_FIRST
     closure()
   }
 
