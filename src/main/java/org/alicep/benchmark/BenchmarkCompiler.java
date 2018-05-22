@@ -37,8 +37,9 @@ class BenchmarkCompiler {
       ClassLoader classLoader,
       Class<?> cls,
       Method method,
+      boolean forkingClasses,
       Predicate<Class<?>>... forkingCoreClassesMatching) {
-    return compileBenchmark(classLoader, cls, method, null, -1, forkingCoreClassesMatching);
+    return compileBenchmark(classLoader, cls, method, null, -1, forkingClasses, forkingCoreClassesMatching);
   }
 
   /**
@@ -55,6 +56,7 @@ class BenchmarkCompiler {
       Method method,
       Field configurations,
       int index,
+      boolean forkingClasses,
       Predicate<Class<?>>... forkingCoreClassesMatching) {
     checkArgument(cls.isAssignableFrom(method.getDeclaringClass()));
     String pkg = method.getDeclaringClass().getPackage().getName();
@@ -86,8 +88,7 @@ class BenchmarkCompiler {
         + "  }\n"
         + "}\n";
     InMemoryJavaFileManager bytecodes = compile(pkg, className, src);
-    ForkingClassLoader forkingClassLoader = bytecodes.getForkingClassLoader(classLoader);
-    Arrays.asList(forkingCoreClassesMatching).forEach(forkingClassLoader::forkingCoreClassesMatching);
+    ClassLoader forkingClassLoader = getClassLoader(classLoader, bytecodes, forkingClasses, forkingCoreClassesMatching);
     ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
     try {
       try {
@@ -107,6 +108,21 @@ class BenchmarkCompiler {
       throw new RuntimeException(e);
     } finally {
       Thread.currentThread().setContextClassLoader(originalClassLoader);
+    }
+  }
+
+  @SafeVarargs
+  private static ClassLoader getClassLoader(
+      ClassLoader classLoader,
+      InMemoryJavaFileManager bytecodes,
+      boolean forkingClasses,
+      Predicate<Class<?>>... forkingCoreClassesMatching) {
+    if (forkingClasses) {
+      ForkingClassLoader forkingClassLoader = bytecodes.getForkingClassLoader(classLoader);
+      Arrays.asList(forkingCoreClassesMatching).forEach(forkingClassLoader::forkingCoreClassesMatching);
+      return forkingClassLoader;
+    } else {
+      return bytecodes.getNonForkingClassLoader(classLoader);
     }
   }
 
