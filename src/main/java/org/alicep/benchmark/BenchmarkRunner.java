@@ -58,6 +58,13 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
 
   @Documented
   @Retention(RetentionPolicy.RUNTIME)
+  @Target({ ElementType.METHOD, ElementType.TYPE })
+  public @interface WithForkingClassLoader {
+    boolean enabled() default false;
+  }
+
+  @Documented
+  @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.FIELD)
   public @interface Configuration { }
 
@@ -154,10 +161,19 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
           getClassLoader(testClass),
           testClass.getJavaClass(),
           method.getMethod(),
+          forkingClasses(method),
           BenchmarkRunner::isCoreCollection);
       benchmarks.add(new SingleBenchmark(description, hotLoopFactory));
     }
     return benchmarks;
+  }
+
+  private static boolean forkingClasses(FrameworkMethod method) {
+    WithForkingClassLoader config = method.getAnnotation(WithForkingClassLoader.class);
+    if (config == null) {
+      config = method.getDeclaringClass().getAnnotation(WithForkingClassLoader.class);
+    }
+    return config == null || config.enabled();
   }
 
   private static ClassLoader getClassLoader(TestClass testClass) {
@@ -248,6 +264,7 @@ public class BenchmarkRunner extends ParentRunner<Runner> {
           method.getMethod(),
           configurationsField.getField(),
           index,
+          forkingClasses(method),
           BenchmarkRunner::isCoreCollection);
       return new SingleBenchmark(
           description,
