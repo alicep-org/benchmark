@@ -79,6 +79,6 @@ Create a list of strings
   * 32 PS Scavenge collections over 32.0 ns
 ```
 
-The range shows the variation in timings encountered when running the test; the sample error of the mean will be around 1% to 99% confidence, for this particular JIT run and background machine load.
+The range shows the variation in timings encountered when running the test; the sample error of the mean will be around 1% (to 99% confidence), for this particular JIT run and background machine load.
 
 Memory usage is calculated using the same method as `MemoryAssertions`, above.
